@@ -10,9 +10,9 @@ class PilotNet(nn.Module):
             nn.ReLU(),
             nn.Conv2d(36, 48, kernel_size=5, stride=2),
             nn.ReLU(),
-            nn.Conv2d(48, 64, kernel_size=3, stride=0),
+            nn.Conv2d(48, 64, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=0),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU(),
             nn.Flatten(),
         )
