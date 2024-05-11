@@ -60,6 +60,7 @@ class PreNorm(nn.Module):
 
         if exists(self.norm_context):
             context = kwargs['context']
+            print(context.shape)
             normed_context = self.norm_context(context)
             kwargs.update(context = normed_context)
 
@@ -184,6 +185,7 @@ class Perceiver(nn.Module):
         self.fourier_encode_data = fourier_encode_data
         fourier_channels = (input_axis * ((num_freq_bands * 2) + 1)) if fourier_encode_data else 0
         input_dim = fourier_channels + input_channels
+        print(input_dim)
 
         self.latents = nn.Parameter(torch.randn(num_latents, latent_dim))
 
