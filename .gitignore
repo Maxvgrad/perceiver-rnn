@@ -4,7 +4,8 @@ rally-estonia-cropped-antialias
 *.zip
 *.csv
 rally-estonia-full
-traces/*
+traces/trace_forward
+traces/trace_backward
 out/*
 data_stuff
 *.pth
