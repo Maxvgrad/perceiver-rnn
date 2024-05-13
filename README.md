@@ -8,10 +8,14 @@ The goal is to train a neural network that transforms forward-facing camera feed
 ## Usage
 ### Pulling vista submodule
 First time:
-- `git submodule update --init --recursive`
+```
+git submodule update --init --recursive
+```
 
 After:
-- `git submodule update --recursive`
+```
+git submodule update --recursive
+```
 ### Evaluation 
 1. Set up conda env:
      ```
