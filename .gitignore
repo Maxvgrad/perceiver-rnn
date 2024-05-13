@@ -7,3 +7,4 @@ rally-estonia-full
 traces/*
 out/*
 data_stuff
+*.pth
