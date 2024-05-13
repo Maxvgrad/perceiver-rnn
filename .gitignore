@@ -4,3 +4,6 @@ rally-estonia-cropped-antialias
 *.zip
 *.csv
 rally-estonia-full
+traces/*
+out/*
+data_stuff
