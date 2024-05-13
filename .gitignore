@@ -8,3 +8,5 @@ traces/*
 out/*
 data_stuff
 *.pth
+*slurm-run*
+*.avi
