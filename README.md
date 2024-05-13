@@ -13,6 +13,25 @@ First time:
 After:
 - `git submodule update --recursive`
 ### Evaluation 
-- Put traces into vista_eval/traces
-- `bash cd vista_eval`
-- `sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces <TRACE_FOLDER_NAME> --traces-root ./traces/ --save-video`
+1. Set up conda env:
+     ```
+    cd vista_eval
+    conda create -n vista python=3.8
+    conda activate vista
+    pip install -r requirements.txt
+    pip install git+https://github.com/UT-ADL/vista.git
+    ```
+
+1. Download traces
+    ```
+    cd vista_eval
+    sh download_traces.sh
+    ```
+
+1. Run evaluation slurm:
+    ```
+    cd vista_eval
+    conda activate vista
+    ```
+   - Forward: `sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces forward_trace --traces-root ./traces/ --save-video`
+   - Backward: `sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces backward_trace --traces-root ./traces/ --save-video`
