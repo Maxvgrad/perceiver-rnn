@@ -8,9 +8,6 @@
 
 # Resources
 #SBATCH -t 23:59:00
-#SBATCH --ntasks=1
-#SBATCH --mem=40G
-#SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:tesla:1
 #SBATCH --exclude=falcon2
 
