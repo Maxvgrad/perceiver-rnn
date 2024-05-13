@@ -34,7 +34,7 @@ class NvidiaDataset(Dataset):
 
         datasets = [self.read_dataset(dataset_path, camera) for dataset_path in self.dataset_paths]
         self.frames = pd.concat(datasets)
-        keep_n_frames = np.ceil(len(self.frames) * dataset_proportion)
+        keep_n_frames = np.ceil(len(self.frames) * dataset_proportion).astype(int)
         self.frames = self.frames.head(keep_n_frames)
 
         if filter_turns:
