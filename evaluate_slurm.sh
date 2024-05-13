@@ -15,6 +15,6 @@
 #SBATCH --exclude=falcon2
 
 # Actual job command(s)
-conda activate vista
+source activate vista
 module load ffmpeg
 srun python -u evaluate.py "$@"
