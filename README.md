@@ -8,5 +8,5 @@ The goal is to train a neural network that transforms forward-facing camera feed
 ## Usage
 ### Evaluation 
     - Put traces into vista_eval/traces
-    - `cd vista_eval`
-    - `sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces <TRACE_FOLDER_NAME> --traces-root ./traces/ --save-video'`
+    - `bash cd vista_eval`
+    - `sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces <TRACE_FOLDER_NAME> --traces-root ./traces/ --save-video`
