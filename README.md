@@ -33,8 +33,14 @@ After:
     cd vista_eval
     conda activate vista
     ```
-   - Forward: `sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces forward_trace --traces-root ./traces/ --save-video`
-   - Backward: `sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces backward_trace --traces-root ./traces/ --save-video`
+    Forward trace 
+    ```
+    sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces forward_trace --traces-root ./traces/ --save-video
+    ```
+    Backwrad trace 
+    ```
+    sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces backward_trace --traces-root ./traces/ --save-video
+    ```
 ### Setting Up Training Environment
 The training can be done in [HPC Centre’s JupyterHub](https://docs.hpc.ut.ee/course/lab5/#jupyter). For that, the initial preparations must be done once, after which the only preliminary step required is choosing the right Jupyter kernel.
 First, login to HPC from the terminal using
