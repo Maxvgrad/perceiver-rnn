@@ -6,7 +6,8 @@
 # Job Details
 #SBATCH --partition=gpu
 #SBATCH -J vista
-#SBATCH -o ./vista_runs/%j-slurm-run.txt # STDOUT/STDERR
+#SBATCH --output=./vista_runs/%j-slurm-run.txt 
+#SBATCH --error=./vista_runs/%j-slurm-run.txt
 
 # Resources
 #SBATCH -t 23:59:00
