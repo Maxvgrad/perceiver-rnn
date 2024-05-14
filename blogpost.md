@@ -1,8 +1,7 @@
 # The Rally Estonia Challenge 2024
 **Project members:** Maksim Ploter, Gordei Pribõtkin, Filips Petuhovs, Rain Eichhorn
 ## Introduction 
-This project is a venture into developing a model for autonomous steering for a self-driving task. The challenge for autonomous vehicle is navigating rural roads in Estonia at moderate speed (15-35 km/h), without traffic. In this project we experiment with *two-three?* deep-learning architectures and report our results.  
-
+This project is a venture into developing a model for autonomous steering for a self-driving task. The challenge for autonomous vehicle is navigating rural roads in Estonia at moderate speed (15-35 km/h), without traffic. In this project we experiment with *two-three?* deep-learning architectures and report our results. We host our code in the following repository: https://github.com/gorixInc/rally-challenge-24
 ## Methods
 ### Dataset and preprocessing
 The dataset contains the cropped and antialiased images from the frontal camera of the vehicle. The resolution of the images is 68x264 pixels. We split the dataset with 80% of provided driving runs going to training, and 20% are kept for validation. This means that we train on 41 runs, and validate on 11. 
@@ -65,6 +64,6 @@ We trained the Baseline PilotNet model for 2 epochs and ran the VISTA evaluation
 | steering-2             | 2           | 39.48         | 0.83               |
 | steering-overfit       | 2           | 22.70         | 0.74               |
 
-Considering the very low crash score of our models, it appears we need to tweak our evaluation procedure.
+Considering the very low crash score of the trained models, it appears we need to tweak our evaluation procedure.
 
 ## Conclusion
