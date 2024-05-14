@@ -60,7 +60,7 @@ module load xz/5.2.5
 ```
 Create a new Python virtual environment. This will store all our dependencies needed to run IPython Kernel.
 ```
-python -m venv <name-of-the-environment>
+python3 -m venv <name-of-the-environment>
 source venv/bin/activate
 ```
 Upgrade pip to the latest version. Then install ipykernel dependency and add it to the JupyterLab environment.
