@@ -75,3 +75,12 @@ Now we are done in the terminal. Move to the JupyterLab (or start the new one ch
 There you should see your created kernel under **Start Preferred Kernel** section. Select it.
 
 Next time if you want to run any tests in the notebook, you should only check that your kernel is selected. You can add freely any other dependencies if you need by running `pip3 install` while being inside of the virtual environment. These dependencies will be automatically synchronized with the ipykernel. Also don't forget to add any new dependencies you want to include permanently to the **requirements.txt** file.
+
+**[Optional]** Initialize weights and biases library `wandb`. It is highly recommended as it ease up tracking your experiments.
+    - Create an account at [wandb.ai](http://wandb.ai) then login
+    
+    ```bash
+    wandb login
+    ```
+    
+    - More information about `wandb`  [here](https://docs.wandb.ai/guide)
