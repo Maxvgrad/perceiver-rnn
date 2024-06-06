@@ -187,6 +187,7 @@ def load_data(train_config):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     args = parse_arguments()
     train_conf = TrainingConfig(args)
     main(train_conf)
