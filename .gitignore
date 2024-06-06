@@ -11,3 +11,4 @@ data_stuff
 *.pth
 *slurm-run*
 *.avi
+.idea/
