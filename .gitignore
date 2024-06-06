@@ -12,3 +12,6 @@ data_stuff
 *slurm-run*
 *.avi
 .idea/
+conda-meta/
+slurm/
+sbatch__*.sh
