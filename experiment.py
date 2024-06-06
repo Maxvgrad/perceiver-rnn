@@ -20,8 +20,14 @@ def parse_arguments():
     argparser.add_argument(
         '--model-name',
         required=False,
-        default=None,
         help='Name of the model used for saving model and logging in W&B.'
+    )
+
+    argparser.add_argument(
+        '--mode',
+        required=True,
+        choices=['train', 'tune_hyperparameters'],
+        help="Mode to run in."
     )
 
     argparser.add_argument(
@@ -105,7 +111,7 @@ def parse_arguments():
         '--max-epochs',
         type=int,
         default=100,
-        help="Maximium number of epochs to train."
+        help="Maximum number of epochs to train."
     )
 
     return argparser.parse_args()
@@ -128,9 +134,30 @@ class TrainingConfig:
         self.fps = 30
 
 
-def main(train_config):
-    if train_conf.wandb_project:
-        wandb.init(project=train_conf.wandb_project)
+class TuneHyperparametersConfig:
+    def __init__(self, args):
+        self.model_type = args.model_type
+        self.model_name = args.model_name
+        self.loss = args.loss
+        self.dataset_folder = args.dataset_folder
+        self.seed = args.seed
+        self.batch_size = args.batch_size
+        self.num_workers = args.num_workers
+        self.weight_decay = args.weight_decay
+        self.learning_rate = args.learning_rate
+        self.learning_rate_patience = args.learning_rate_patience
+        self.wandb_project = args.wandb_project
+        self.max_epochs = args.max_epochs
+        self.patience = args.patience
+        self.fps = 30
+
+    def update(self, config):
+        self.learning_rate = config.learning_rate
+        self.batch_size = config.batch_size
+        self.weight_decay = config.weight_decay
+
+
+def train(train_config):
 
     if train_config.model_type == "pilotnet":
         model = PilotNet()
@@ -186,8 +213,43 @@ def load_data(train_config):
     return train_loader, valid_loader
 
 
+def tune_hyperparameters(tune_hyperparameters_config):
+    sweep_configuration = {
+        'method': 'random',
+        'metric': {'goal': 'minimize', 'name': 'valid_loss'},
+        'parameters': {
+            'learning_rate': {'values': [1e-3, 1e-4, 1e-5]},
+            'batch_size': {'values': [8, 16, 32, 64, 128, 256, 512]},
+            'weight_decay': {'values': [1e-2, 1e-3, 1e-4]},
+        }
+    }
+
+    sweep_id = wandb.sweep(sweep=sweep_configuration, project=tune_hyperparameters_config.wandb_project)
+
+    def sweep_train():
+        wandb.init(project=tune_hyperparameters_config.wandb_project)
+        tune_hyperparameters_config.update(wandb.config)
+        train_conf = TrainingConfig(tune_hyperparameters_config)
+        train(train_conf)
+
+    wandb.agent(sweep_id, function=sweep_train)
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     args = parse_arguments()
-    train_conf = TrainingConfig(args)
-    main(train_conf)
+
+    if args.mode == 'train':
+        config = TrainingConfig(args)
+        if config.wandb_project:
+            wandb.init(project=config.wandb_project, config={
+                "model_name": config.model_name,
+                "batch_size": config.batch_size,
+                "learning_rate": config.learning_rate,
+                "weight_decay": config.weight_decay,
+            })
+        train(config)
+    elif args.mode == 'tune_hyperparameters':
+        config = TuneHyperparametersConfig(args)
+        tune_hyperparameters(config)
+

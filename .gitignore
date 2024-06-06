@@ -1,4 +1,4 @@
-*.png 
+*.png
 *.jpg
 rally-estonia-cropped-antialias
 *.zip
@@ -15,3 +15,4 @@ data_stuff
 conda-meta/
 slurm/
 sbatch__*.sh
+__pycache__/
