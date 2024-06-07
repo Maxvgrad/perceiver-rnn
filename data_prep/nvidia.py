@@ -5,28 +5,22 @@ import numpy as np
 import torchvision
 import sys
 from torch.utils.data._utils.collate import default_collate
+from .custom_transforms import ImageTransform, Normalize
 
-
-class Normalize(object):
-    def __call__(self, data, transform=None):
-        image = data["image"]
-        image = image / 255
-        data["image"] = image
-        return data
-    
 class NvidiaDataset(Dataset):
 
-    def __init__(self, dataset_paths, transform=None, camera="front_wide", name="Nvidia dataset",
+    def __init__(self, dataset_paths, transform=False, camera="front_wide", name="Nvidia dataset",
                  filter_turns=False, metadata_file="nvidia_frames.csv", color_space="rgb", dataset_proportion=1.0):
         self.name = name
         self.metadata_file = metadata_file
         self.color_space = color_space
         self.dataset_paths = dataset_paths
-        if transform:
-            self.transform = transform
+        if not transform:
+            self.transform = transforms.Compose([Normalize()])
             print(f'[NvidiaDataset] Using transform from argument:', self.transform)
         else:
-            self.transform = transforms.Compose([Normalize()])
+            self.transform = transforms.Compose([ImageTransform()])
+                    
             print(f'[NvidiaDataset] Using default transform:', self.transform)
 
         self.camera_name = camera
