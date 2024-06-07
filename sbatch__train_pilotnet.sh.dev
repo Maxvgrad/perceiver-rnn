@@ -1,0 +1,21 @@
+#!/bin/bash -l
+#SBATCH --job-name="NN-project-rally-challenge-24-train-pilotnet"
+#SBATCH --time=01:00:00 # set an appropriate amount of time for the job to run here in HH:MM:SS format
+#SBATCH --partition=gpu # set the partition to gpu
+#SBATCH --gres=gpu:tesla:1 # assign a single tesla gpu
+#SBATCH --output=~/rally-challenge-24/slurm/slurm_%x.%j.out # STDOUT
+
+# Here you need to run train.py with python from the virtual environment where you have all the dependencies install
+# You also have to pass the command line args (such as dataset name) to the script here, as well
+# You may use whichever virtual environment manager you prefer (conda, venv, etc.)
+
+module load miniconda3
+
+source activate rally_challenge_env
+
+python experiment.py \
+  --mode="train" \
+  --model-name="test" \
+  --model-type="pilotnet" \
+  --max-epochs=1 \
+  --num-workers=1

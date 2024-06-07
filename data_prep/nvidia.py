@@ -70,16 +70,14 @@ class NvidiaDataset(Dataset):
             'timestamp': np.array(frame["index"]).astype('datetime64[ns]').astype(np.float64),
         }
 
-        target_values = frame["steering_angle"]
+        target_values = np.array(frame["steering_angle"], dtype=np.float32)
 
         if self.transform:
             data = self.transform(data)
 
-        target = np.zeros((1, self.target_size))
-        target[0, :] = target_values
         conditional_mask = np.ones((1, self.target_size))
 
-        return data, target.reshape(-1), conditional_mask.reshape(-1)
+        return data, target_values.reshape(-1), conditional_mask.reshape(-1)
 
     def __len__(self):
         return len(self.frames.index)
