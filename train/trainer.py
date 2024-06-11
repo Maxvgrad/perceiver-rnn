@@ -24,7 +24,7 @@ class Trainer:
         else:
             logging.info("Using CPU")
             self.device = torch.device('cpu')
-        self.target_name = "target_name"
+        self.target_name = "steering_angle"
         self.n_conditional_branches = n_conditional_branches
         self.wandb_logging = False
 
