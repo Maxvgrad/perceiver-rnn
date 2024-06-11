@@ -105,6 +105,10 @@ class Trainer:
                 logging.info(f'Early stopping, on epoch: {epoch + 1}.')
                 break
 
+        if self.wandb_logging:
+            logging.info(f'Finishing wandb.')
+            wandb.finish()
+
         self.save_models(model, valid_loader)
 
         return best_valid_loss
