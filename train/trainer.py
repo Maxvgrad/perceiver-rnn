@@ -119,18 +119,30 @@ class Trainer:
         if self.target_name == "steering_angle":
             true_steering_angles = frames_df.steering_angle.to_numpy()
             metrics = calculate_open_loop_metrics(predictions, true_steering_angles, fps=fps)
-
-            left_turns = frames_df["turn_signal"] == 0  # TODO: remove magic values
-            left_metrics = calculate_open_loop_metrics(predictions[left_turns], true_steering_angles[left_turns], fps=fps)
-            metrics["left_mae"] = left_metrics["mae"]
+            left_turns = frames_df["turn_signal"] == 0
+            if left_turns.any():
+                left_metrics = calculate_open_loop_metrics(predictions[left_turns], true_steering_angles[left_turns],
+                                                           fps=fps)
+                metrics["left_mae"] = left_metrics["mae"]
+            else:
+                metrics["left_mae"] = 0
 
             straight = frames_df["turn_signal"] == 1
-            straight_metrics = calculate_open_loop_metrics(predictions[straight], true_steering_angles[straight], fps=fps)
-            metrics["straight_mae"] = straight_metrics["mae"]
+            if straight.any():
+                straight_metrics = calculate_open_loop_metrics(predictions[straight], true_steering_angles[straight],
+                                                               fps=fps)
+                metrics["straight_mae"] = straight_metrics["mae"]
+            else:
+                metrics["straight_mae"] = 0
 
             right_turns = frames_df["turn_signal"] == 2
-            right_metrics = calculate_open_loop_metrics(predictions[right_turns], true_steering_angles[right_turns], fps=fps)
-            metrics["right_mae"] = right_metrics["mae"]
+            if right_turns.any():
+                right_metrics = calculate_open_loop_metrics(predictions[right_turns], true_steering_angles[right_turns],
+                                                            fps=fps)
+                metrics["right_mae"] = right_metrics["mae"]
+            else:
+                metrics["right_mae"] = 0
+
 
         else:
             logging.error(f"Unknown target name {self.target_name}")
