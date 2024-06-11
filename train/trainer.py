@@ -46,6 +46,11 @@ class Trainer:
         criterion = criterion.to(self.device)
 
         if self.wandb_logging:
+            # When using LazyModules Call `forward` with a dummy batch to initialize the parameters
+            # before calling torch functions
+            data, _, _ = next(iter(train_loader))
+            inputs = data['image'].to(self.device)
+            model(inputs)
             wandb.watch(model, criterion)
 
         best_valid_loss = float('inf')
