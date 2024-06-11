@@ -18,5 +18,6 @@ python experiment.py \
   --mode="tune_hyperparameters" \
   --model-name="test" \
   --model-type="pilotnet" \
+  --wandb-project="wandb-test-project" \
   --max-epochs=1 \
   --num-workers=1
