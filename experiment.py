@@ -227,10 +227,10 @@ def tune_hyperparameters(tune_hyperparameters_config):
     sweep_id = wandb.sweep(sweep=sweep_configuration, project=tune_hyperparameters_config.wandb_project)
 
     def sweep_train():
-        wandb.init(project=tune_hyperparameters_config.wandb_project)
-        tune_hyperparameters_config.update(wandb.config)
-        train_conf = TrainingConfig(tune_hyperparameters_config)
-        train(train_conf)
+        with wandb.init(project=tune_hyperparameters_config.wandb_project):
+            tune_hyperparameters_config.update(wandb.config)
+            train_conf = TrainingConfig(tune_hyperparameters_config)
+            train(train_conf)
 
     wandb.agent(sweep_id, function=sweep_train)
 
