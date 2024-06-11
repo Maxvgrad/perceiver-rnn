@@ -232,6 +232,9 @@ def tune_hyperparameters(tune_hyperparameters_config):
             train_conf = TrainingConfig(tune_hyperparameters_config)
             train(train_conf)
 
+            logging.info(f'Finishing wandb.')
+            wandb.finish()
+
     wandb.agent(sweep_id, function=sweep_train)
 
 
@@ -249,6 +252,9 @@ if __name__ == "__main__":
                 "weight_decay": config.weight_decay,
             })
         train(config)
+        if config.wandb_project:
+            logging.info(f'Finishing wandb.')
+            wandb.finish()
     elif args.mode == 'tune_hyperparameters':
         config = TuneHyperparametersConfig(args)
         tune_hyperparameters(config)
