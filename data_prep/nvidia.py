@@ -3,6 +3,7 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 import torchvision
+import torch
 import sys
 from torch.utils.data._utils.collate import default_collate
 from .custom_transforms import ImageTransform, Normalize
@@ -112,6 +113,7 @@ class NvidiaDatasetRNN(NvidiaDataset):
         super().__init__(dataset_paths, transform, camera, name,
                           filter_turns, metadata_file, color_space, dataset_proportion)
         self.sequence_ids = self.create_sequence_indices(seq_length, seq_stride)
+        self.target_size = seq_length
 
     def collate_fn(self, batch):
         data, targets, _ = default_collate(batch)
@@ -140,9 +142,10 @@ class NvidiaDatasetRNN(NvidiaDataset):
             else:
                 print(f"Unknown color space: ", self.color_space)
                 sys.exit()
+        sequence_images = torch.stack(sequence_images)
         
         sequence_data = {
-            'image': np.array(sequence_images, dtype='float32'),
+            'image': sequence_images,
             'path_id': np.array(sequence_df['path_id']),
             'steering_angle': np.array(sequence_df["steering_angle"]),
             'vehicle_speed': np.array(sequence_df["vehicle_speed"]),
@@ -157,11 +160,11 @@ class NvidiaDatasetRNN(NvidiaDataset):
         if self.transform:
             sequence_data = self.transform(sequence_data)
 
-        #target = np.zeros((1, self.target_size))
-        #target[0, :] = target_values
+        target = np.zeros((1, self.target_size))
+        target[0, :] = target_values
         conditional_mask = np.ones((1, self.target_size))
         
-        return sequence_data, target_values.reshape(-1), conditional_mask.reshape(-1)
+        return sequence_data, target.reshape(-1), conditional_mask.reshape(-1)
 
     def __len__(self):
         return len(self.sequence_ids)
