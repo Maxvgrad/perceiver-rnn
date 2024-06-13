@@ -3,7 +3,7 @@ import sys
 from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
-
+from einops import rearrange
 import numpy as np
 import onnx
 import torch
@@ -27,6 +27,7 @@ class Trainer:
         self.target_name = "steering_angle"
         self.n_conditional_branches = n_conditional_branches
         self.wandb_logging = False
+        self.model_name = model_name
 
         if wandb_project:
             self.wandb_logging = True
@@ -49,7 +50,10 @@ class Trainer:
             # When using LazyModules Call `forward` with a dummy batch to initialize the parameters
             # before calling torch functions
             data, _, _ = next(iter(train_loader))
-            inputs = data['image'].to(self.device)
+            if self.model_name == 'perceiver':
+                inputs = rearrange(data[0]['image'], 'b t c h w -> t b h w c')[0].to(self.device)
+            else:
+                inputs = data[0]['image'].to(self.device)
             model(inputs)
             wandb.watch(model, criterion)
 
@@ -255,6 +259,57 @@ class PilotNetTrainer(Trainer):
         target_values = target_values.to(self.device)
         predictions = model(inputs)
         return predictions, criterion(predictions, target_values)
+    
+    
+class PerceiverTrainer(Trainer):
+
+    def predict(self, model, dataloader):
+        all_predictions = []
+        model.eval()
+
+        with torch.no_grad():
+            progress_bar = tqdm(total=len(dataloader), smoothing=0)
+            progress_bar.set_description("Model predictions")
+            for i, (data, target_values, condition_mask) in enumerate(dataloader):
+                inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device)
+                
+                latents = None
+                sequence_predictions = []
+                
+                for t in range(inputs.size(0)):
+                    input_frame = inputs[t]
+
+                    predictions, latents = model(input_frame, latents)
+                    sequence_predictions.append(predictions)
+
+                all_predictions.extend(torch.stack(sequence_predictions).cpu().squeeze().numpy())
+                progress_bar.update(1)
+
+        return np.array(all_predictions)
+
+    def train_batch(self, model, data, target_values, condition_mask, criterion):
+        inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device) # (T, B, H, W, C)
+        target_values = rearrange(target_values, 'b t -> t b').to(self.device) # (T, B)
+        
+        latents = None
+        sequence_predictions = []
+        total_loss = 0.0
+        
+        for t in range(inputs.size(0)):
+            input_frame = inputs[t]
+            target_frame = target_values[t]
+
+            predictions, latents = model(input_frame, latents)
+            sequence_predictions.append(predictions)
+
+            # Calculate loss for the current time step
+            loss = criterion(predictions.squeeze(), target_frame)
+            total_loss += loss
+            
+        return torch.stack(sequence_predictions), total_loss
+    
+    def create_onxx_input(self, data):
+        return rearrange(data[0]['image'], 'b t c h w -> t b h w c')[0].to(self.device)
 
 
 class ControlTrainer(Trainer):

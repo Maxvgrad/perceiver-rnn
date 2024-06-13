@@ -33,7 +33,7 @@ class NvidiaDataset(Dataset):
         for i, dataset in enumerate(datasets):
             dataset['path_id'] = i
         
-        self.frames = pd.concat(datasets)
+        self.frames = pd.concat(datasets).reset_index(drop=True)
         keep_n_frames = np.ceil(len(self.frames) * dataset_proportion).astype(int)
         self.frames = self.frames.head(keep_n_frames)
 
@@ -99,7 +99,7 @@ class NvidiaDataset(Dataset):
         frames_df["image_path"] = [str(dataset_path / image_path) for image_path in camera_images]
 
         print(f"{dataset_path}: length={len(frames_df)}, filtered={len_before_filtering-len_after_filtering}")
-        frames_df.reset_index(inplace=True)
+        frames_df.reset_index(drop=True, inplace=True)
         return frames_df
 
 
