@@ -7,11 +7,13 @@ import wandb
 
 from pathlib import Path
 from models.pilotnet import PilotNet
-from train.trainer import PilotNetTrainer
-from torch.nn import MSELoss
+from models.perciever import Perceiver
+from models.perciever_rnn import MLPPredictor, PerceiverRNN
+from train.trainer import PerceiverTrainer, PilotNetTrainer
+from torch.nn import MSELoss, L1Loss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from data_prep.nvidia import NvidiaDataset
+from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
 
 
 def parse_arguments():
