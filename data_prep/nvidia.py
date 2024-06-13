@@ -3,30 +3,25 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 import torchvision
+import torch
 import sys
 from torch.utils.data._utils.collate import default_collate
+from .custom_transforms import ImageTransform, Normalize
 
-
-class Normalize(object):
-    def __call__(self, data, transform=None):
-        image = data["image"]
-        image = image / 255
-        data["image"] = image
-        return data
-    
 class NvidiaDataset(Dataset):
 
-    def __init__(self, dataset_paths, transform=None, camera="front_wide", name="Nvidia dataset",
+    def __init__(self, dataset_paths, transform=False, camera="front_wide", name="Nvidia dataset",
                  filter_turns=False, metadata_file="nvidia_frames.csv", color_space="rgb", dataset_proportion=1.0):
         self.name = name
         self.metadata_file = metadata_file
         self.color_space = color_space
         self.dataset_paths = dataset_paths
-        if transform:
-            self.transform = transform
+        if not transform:
+            self.transform = transforms.Compose([Normalize()])
             print(f'[NvidiaDataset] Using transform from argument:', self.transform)
         else:
-            self.transform = transforms.Compose([Normalize()])
+            self.transform = transforms.Compose([ImageTransform()])
+                    
             print(f'[NvidiaDataset] Using default transform:', self.transform)
 
         self.camera_name = camera
@@ -38,7 +33,7 @@ class NvidiaDataset(Dataset):
         for i, dataset in enumerate(datasets):
             dataset['path_id'] = i
         
-        self.frames = pd.concat(datasets)
+        self.frames = pd.concat(datasets).reset_index(drop=True)
         keep_n_frames = np.ceil(len(self.frames) * dataset_proportion).astype(int)
         self.frames = self.frames.head(keep_n_frames)
 
@@ -70,16 +65,14 @@ class NvidiaDataset(Dataset):
             'timestamp': np.array(frame["index"]).astype('datetime64[ns]').astype(np.float64),
         }
 
-        target_values = frame["steering_angle"]
+        target_values = np.array(frame["steering_angle"], dtype=np.float32)
 
         if self.transform:
             data = self.transform(data)
 
-        target = np.zeros((1, self.target_size))
-        target[0, :] = target_values
         conditional_mask = np.ones((1, self.target_size))
 
-        return data, target.reshape(-1), conditional_mask.reshape(-1)
+        return data, target_values.reshape(-1), conditional_mask.reshape(-1)
 
     def __len__(self):
         return len(self.frames.index)
@@ -106,7 +99,7 @@ class NvidiaDataset(Dataset):
         frames_df["image_path"] = [str(dataset_path / image_path) for image_path in camera_images]
 
         print(f"{dataset_path}: length={len(frames_df)}, filtered={len_before_filtering-len_after_filtering}")
-        frames_df.reset_index(inplace=True)
+        frames_df.reset_index(drop=True, inplace=True)
         return frames_df
 
 
@@ -120,6 +113,7 @@ class NvidiaDatasetRNN(NvidiaDataset):
         super().__init__(dataset_paths, transform, camera, name,
                           filter_turns, metadata_file, color_space, dataset_proportion)
         self.sequence_ids = self.create_sequence_indices(seq_length, seq_stride)
+        self.target_size = seq_length
 
     def collate_fn(self, batch):
         data, targets, _ = default_collate(batch)
@@ -148,9 +142,10 @@ class NvidiaDatasetRNN(NvidiaDataset):
             else:
                 print(f"Unknown color space: ", self.color_space)
                 sys.exit()
+        sequence_images = torch.stack(sequence_images)
         
         sequence_data = {
-            'image': np.array(sequence_images, dtype='float32'),
+            'image': sequence_images,
             'path_id': np.array(sequence_df['path_id']),
             'steering_angle': np.array(sequence_df["steering_angle"]),
             'vehicle_speed': np.array(sequence_df["vehicle_speed"]),
@@ -165,11 +160,11 @@ class NvidiaDatasetRNN(NvidiaDataset):
         if self.transform:
             sequence_data = self.transform(sequence_data)
 
-        #target = np.zeros((1, self.target_size))
-        #target[0, :] = target_values
+        target = np.zeros((1, self.target_size))
+        target[0, :] = target_values
         conditional_mask = np.ones((1, self.target_size))
         
-        return sequence_data, target_values.reshape(-1), conditional_mask.reshape(-1)
+        return sequence_data, target.reshape(-1), conditional_mask.reshape(-1)
 
     def __len__(self):
         return len(self.sequence_ids)

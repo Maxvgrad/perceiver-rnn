@@ -1,4 +1,4 @@
-*.png 
+*.png
 *.jpg
 rally-estonia-cropped-antialias
 *.zip
@@ -11,3 +11,8 @@ data_stuff
 *.pth
 *slurm-run*
 *.avi
+.idea/
+conda-meta/
+slurm/
+sbatch__*.sh
+__pycache__/
