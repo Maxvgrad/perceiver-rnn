@@ -1,0 +1,29 @@
+#!/bin/bash -l
+#SBATCH --job-name="NN-project-rally-challenge-24-train-perceiver"
+#SBATCH --time=04:00:00 # set an appropriate amount of time for the job to run here in HH:MM:SS format
+#SBATCH --partition=gpu # set the partition to gpu
+#SBATCH --gres=gpu:tesla:1 # assign a single tesla gpu
+#SBATCH --output=slurm/slurm_%x.%j.out # STDOUT
+
+# Here you need to run train.py with python from the virtual environment where you have all the dependencies install
+# You also have to pass the command line args (such as dataset name) to the script here, as well
+# You may use whichever virtual environment manager you prefer (conda, venv, etc.)
+
+module load cuda/11.7.0
+module load python/3.8.6
+
+source venv/bin/activate
+
+python experiment.py \
+  --mode train \
+  --model-name perceiver_test \
+  --model-type perceiver \
+  --max-epochs 10 \
+  --num-workers 2 \
+  --dataset-folder /gpfs/space/projects/rally2023/rally-estonia-cropped-antialias \
+  --wandb-project wandb-test-perceiver-project \
+  --learning-rate-patience 2 \
+  --batch-size 32 \
+  --seq-length 32 \
+  --stride 16
+  

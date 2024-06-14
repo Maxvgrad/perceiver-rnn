@@ -35,7 +35,7 @@ def parse_arguments():
     argparser.add_argument(
         '--model-type',
         required=False,
-        choices=['pilotnet'],
+        choices=['pilotnet', 'perceiver'],
         default='pilotnet',
         help='Defines which model will be trained.'
     )
@@ -43,8 +43,8 @@ def parse_arguments():
     argparser.add_argument(
         '--loss',
         required=False,
-        choices=['mse'],
-        default='mse',
+        choices=['mse', 'mae'],
+        default='mae',
         help='Loss function used for training.'
     )
 
