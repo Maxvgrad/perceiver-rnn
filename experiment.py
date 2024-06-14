@@ -157,7 +157,7 @@ class TrainingConfig:
         self.patience = args.patience
         self.seq_length = args.seq_length
         self.stride = args.stride
-        self.augment = args.augment
+        self.augment = bool(args.augment)
         self.fps = 30
 
 
@@ -169,7 +169,7 @@ class TuneHyperparametersConfig(TrainingConfig):
         self.learning_rate = config.learning_rate
         self.batch_size = config.batch_size
         self.weight_decay = config.weight_decay
-        self.augment = config.augment
+        self.augment = bool(config.augment)
 
 
 def train(train_config):
@@ -278,7 +278,7 @@ def tune_hyperparameters(tune_hyperparameters_config):
                 'max': 1e-1,
             },
             'batch_size': {'values': [128, 256, 512]},
-            'transform': [True, False]
+            'augment': {'values': [0, 1]},
         },
         'early_terminate': {
             'type': 'hyperband',
