@@ -240,8 +240,8 @@ def load_data(train_config):
     data_dirs = os.listdir(dataset_path)
     random.shuffle(data_dirs)
     split_index = int(0.8 * len(data_dirs))
-    train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
-    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
+    train_paths = [dataset_path / dir_name for dir_name in data_dirs[0:3]]
+    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[3:4]]
 
     if train_config.model_type == "pilotnet":   
         train_dataset = NvidiaDatasetOptim(train_paths)
