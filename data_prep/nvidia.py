@@ -113,7 +113,7 @@ class NvidiaDatasetRNN(NvidiaDataset):
         super().__init__(dataset_paths, transform, camera, name,
                           filter_turns, metadata_file, color_space, dataset_proportion)
         self.sequence_ids = self.create_sequence_indices(seq_length, seq_stride)
-
+        
         self.target_size = seq_length
 
     def collate_fn(self, batch):

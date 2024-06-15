@@ -14,6 +14,7 @@ from torch.nn import MSELoss, L1Loss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
+from data_prep.dataloader_optimized import NvidiaDatasetOptim, NvidiaDatasetRNNOptim
 
 
 def parse_arguments():
@@ -239,20 +240,20 @@ def load_data(train_config):
     data_dirs = os.listdir(dataset_path)
     random.shuffle(data_dirs)
     split_index = int(0.8 * len(data_dirs))
-    train_paths = [dataset_path / dir_name for dir_name in data_dirs[:3]]
-    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[3:4]]
+    train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
+    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
 
-    if train_config.model_type == "pilotnet":
-        train_dataset = NvidiaDataset(train_paths)
-        valid_dataset = NvidiaDataset(valid_paths)
+    if train_config.model_type == "pilotnet":   
+        train_dataset = NvidiaDatasetOptim(train_paths)
+        valid_dataset = NvidiaDatasetOptim(valid_paths)
     elif train_config.model_type == "perceiver":
-        train_dataset = NvidiaDatasetRNN(train_paths, train_config.seq_length, train_config.stride)
-        valid_dataset = NvidiaDatasetRNN(valid_paths, train_config.seq_length, train_config.stride)
+        train_dataset = NvidiaDatasetRNNOptim(train_paths, train_config.seq_length, train_config.stride)
+        valid_dataset = NvidiaDatasetRNNOptim(valid_paths, train_config.seq_length, train_config.stride)
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
         sys.exit()
 
-    train_loader = DataLoader(train_dataset, batch_size=train_config.batch_size, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=train_config.batch_size, shuffle=False,
                               num_workers=train_config.num_workers, pin_memory=True,
                               persistent_workers=True, collate_fn=train_dataset.collate_fn)
 
