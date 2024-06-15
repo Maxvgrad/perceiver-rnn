@@ -2,8 +2,8 @@
 #SBATCH --job-name="NN-project-rally-challenge-dataset-convert"
 #SBATCH --time=04:00:00 # set an appropriate amount of time for the job to run here in HH:MM:SS format
 #SBATCH --partition=intel 
-#SBATCH --mem=128G
-#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=6
 #SBATCH --output=slurm/slurm_%x.%j.out # STDOUT
 
 # Here you need to run train.py with python from the virtual environment where you have all the dependencies install
@@ -16,4 +16,4 @@ module load miniconda3
 
 conda activate rally_challenge_env
 
-python data_prep/convert_dataset_to_tensor_chunks.py --num_workers 12
+python data_prep/convert_dataset_to_tensor_chunks.py --num_workers 4
