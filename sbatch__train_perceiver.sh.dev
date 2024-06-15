@@ -24,7 +24,7 @@ python experiment.py \
   --dataset-folder /gpfs/space/projects/rally2023/rally-estonia-cropped-antialias \
   --wandb-project wandb-test-perceiver-project \
   --learning-rate-patience 2 \
-  --batch-size 32 \
-  --seq-length 32 \
+  --batch-size 4 \
+  --seq-length 64 \
   --stride 16
   
