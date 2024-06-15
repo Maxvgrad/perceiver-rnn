@@ -1,7 +1,9 @@
 #!/bin/bash -l
 #SBATCH --job-name="NN-project-rally-challenge-dataset-convert"
 #SBATCH --time=04:00:00 # set an appropriate amount of time for the job to run here in HH:MM:SS format
-#SBATCH --partition=main # set the partition to gpu
+#SBATCH --partition=intel 
+#SBATCH --mem=8G
+#SBATCH --cpus-per-task=12
 #SBATCH --output=slurm/slurm_%x.%j.out # STDOUT
 
 # Here you need to run train.py with python from the virtual environment where you have all the dependencies install
