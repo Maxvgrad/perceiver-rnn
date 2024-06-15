@@ -28,10 +28,14 @@ def process_directory(data_dir):
     path_name = data_dir.stem
     print(f'Working on {path_name}')
 
+
     path_target_dir = target_dir / path_name
     os.makedirs(path_target_dir, exist_ok=True)
     frames_df_target = path_target_dir / 'nvidia_frames.csv'
     shutil.copy(frames_df_source, frames_df_target)
+    tensor_target = path_target_dir / 'full_img_tensor_TCHW.pth'
+    if os.path.exists(tensor_target):
+        return path_name
 
     image_dirs = glob(str(data_dir) + '/front_wide/*')
     dataset_tensor = torch.empty(len(image_dirs), 3, 68, 264)
@@ -43,6 +47,7 @@ def process_directory(data_dir):
 
     tensor_target = path_target_dir / 'full_img_tensor_TCHW.pth'
     torch.save(dataset_tensor, tensor_target)
+    del dataset_tensor
     return path_name
 
 with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
