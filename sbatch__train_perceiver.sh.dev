@@ -24,7 +24,7 @@ python experiment_optimized.py \
   --dataset-folder ./tensor_dataset \
   --wandb-project wandb-test-perceiver-project \
   --learning-rate-patience 2 \
-  --batch-size 2 \
+  --batch-size 1 \
   --seq-length 256 \
   --stride 200
   
