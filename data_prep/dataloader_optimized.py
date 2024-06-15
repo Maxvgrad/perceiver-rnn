@@ -62,7 +62,7 @@ class NvidiaDatasetOptim(Dataset):
 
         len_after_filtering = len(frames_df)
 
-        frames_df["full_tensor_path"] = [str(dataset_path / 'full_path_tensor_TCHW.pth') for _ in range(len(frames_df))]
+        frames_df["full_tensor_path"] = [str(dataset_path / self.full_tensor_filename) for _ in range(len(frames_df))]
 
         print(f"{dataset_path}: length={len(frames_df)}, filtered={len_before_filtering-len_after_filtering}")
         frames_df.reset_index(drop=True, inplace=True)

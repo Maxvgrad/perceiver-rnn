@@ -9,7 +9,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 parser = argparse.ArgumentParser(description='Copy a file from one directory to another.')
 parser.add_argument('--target_dir', default=r'./tensor_dataset', type=str, help='The path to the destination file')
+parser.add_argument('--num_workers', default=8, type=int, help='The path to the destination file')
 args = parser.parse_args()
+
+NUM_WORKERS = args.num_workers
 
 source_dir = Path('/gpfs/space/projects/rally2023/rally-estonia-cropped-antialias')
 #source_dir = Path('./data_stuff/rally-estonia-cropped-antialias')
@@ -42,7 +45,7 @@ def process_directory(data_dir):
     torch.save(dataset_tensor, tensor_target)
     return path_name
 
-with ThreadPoolExecutor(max_workers=8) as executor:
+with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
     futures = [executor.submit(process_directory, data_dir) for data_dir in data_dirs]
     for future in as_completed(futures):
         path_name = future.result()
