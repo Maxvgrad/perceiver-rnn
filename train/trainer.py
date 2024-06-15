@@ -27,20 +27,19 @@ class Trainer:
         self.target_name = "steering_angle"
         self.n_conditional_branches = n_conditional_branches
         self.wandb_logging = False
-        self.model_name = model_name
 
         if wandb_project:
             self.wandb_logging = True
 
         if model_name:
             datetime_prefix = datetime.today().strftime('%Y%m%d%H%M%S')
-            self.save_dir = Path("models") / f"{datetime_prefix}_{model_name}"
+            self.save_dir = Path("trained_models") / f"{datetime_prefix}_{model_name}"
             self.save_dir.mkdir(parents=True, exist_ok=False)
 
     def force_cpu(self):
         self.device = 'cpu'
 
-    def train(self, model, train_loader, valid_loader, optimizer, criterion, n_epoch,
+    def train(self, model, model_type, train_loader, valid_loader, optimizer, criterion, n_epoch,
               patience=10, lr_patience=10, fps=30):
 
         model = model.to(self.device)
@@ -50,10 +49,10 @@ class Trainer:
             # When using LazyModules Call `forward` with a dummy batch to initialize the parameters
             # before calling torch functions
             data, _, _ = next(iter(train_loader))
-            if self.model_name == 'perceiver':
-                inputs = rearrange(data[0]['image'], 'b t c h w -> t b h w c')[0].to(self.device)
+            if model_type == 'perceiver':
+                inputs = rearrange(data['image'], 'b t c h w -> t b h w c')[0].to(self.device)
             else:
-                inputs = data[0]['image'].to(self.device)
+                inputs = data['image'].to(self.device)
             model(inputs)
             wandb.watch(model, criterion)
 
@@ -282,10 +281,10 @@ class PerceiverTrainer(Trainer):
                     predictions, latents = model(input_frame, latents)
                     sequence_predictions.append(predictions)
 
-                all_predictions.extend(torch.stack(sequence_predictions).cpu().squeeze().numpy())
+                all_predictions.append(torch.stack(sequence_predictions).cpu().numpy().squeeze(axis=2))
                 progress_bar.update(1)
 
-        return np.array(all_predictions)
+        return np.concatenate(all_predictions, axis=1)
 
     def train_batch(self, model, data, target_values, condition_mask, criterion):
         inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device) # (T, B, H, W, C)
@@ -310,6 +309,62 @@ class PerceiverTrainer(Trainer):
     
     def create_onxx_input(self, data):
         return rearrange(data[0]['image'], 'b t c h w -> t b h w c')[0].to(self.device)
+    
+    def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
+        epoch_loss = 0.0
+        model.eval()
+        all_predictions = []
+
+        with torch.no_grad():
+            for i, (data, target_values, condition_mask) in enumerate(iterator):
+                predictions, loss = self.train_batch(model, data, target_values, condition_mask, criterion)
+                epoch_loss += loss.item()
+                all_predictions.append(predictions.cpu().numpy().squeeze(axis=2))
+
+                progress_bar.update(1)
+                progress_bar.set_description(f'epoch {epoch + 1} | train loss: {train_loss:.4f} | valid loss: {(epoch_loss / (i + 1)):.4f}')
+
+        total_loss = epoch_loss / len(iterator)
+        result = np.concatenate(all_predictions, axis=1)
+        return total_loss, result
+    
+    def calculate_metrics(self, fps, predictions, valid_loader):
+        sequence_ids = np.concatenate(valid_loader.dataset.sequence_ids)
+        frames_df = valid_loader.dataset.frames.loc[sequence_ids].reset_index(drop=True)
+        predictions = predictions.flatten('F')
+        if self.target_name == "steering_angle":
+            true_steering_angles = frames_df.steering_angle.to_numpy()
+            metrics = calculate_open_loop_metrics(predictions, true_steering_angles, fps=fps)
+            left_turns = frames_df["turn_signal"] == 0
+            if left_turns.any():
+                left_metrics = calculate_open_loop_metrics(predictions[left_turns], true_steering_angles[left_turns],
+                                                           fps=fps)
+                metrics["left_mae"] = left_metrics["mae"]
+            else:
+                metrics["left_mae"] = 0
+
+            straight = frames_df["turn_signal"] == 1
+            if straight.any():
+                straight_metrics = calculate_open_loop_metrics(predictions[straight], true_steering_angles[straight],
+                                                               fps=fps)
+                metrics["straight_mae"] = straight_metrics["mae"]
+            else:
+                metrics["straight_mae"] = 0
+
+            right_turns = frames_df["turn_signal"] == 2
+            if right_turns.any():
+                right_metrics = calculate_open_loop_metrics(predictions[right_turns], true_steering_angles[right_turns],
+                                                            fps=fps)
+                metrics["right_mae"] = right_metrics["mae"]
+            else:
+                metrics["right_mae"] = 0
+
+
+        else:
+            logging.error(f"Unknown target name {self.target_name}")
+            sys.exit()
+
+        return metrics
 
 
 class ControlTrainer(Trainer):

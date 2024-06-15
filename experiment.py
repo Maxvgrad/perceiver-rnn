@@ -35,7 +35,7 @@ def parse_arguments():
     argparser.add_argument(
         '--model-type',
         required=False,
-        choices=['pilotnet'],
+        choices=['pilotnet', 'perceiver'],
         default='pilotnet',
         help='Defines which model will be trained.'
     )
@@ -43,8 +43,8 @@ def parse_arguments():
     argparser.add_argument(
         '--loss',
         required=False,
-        choices=['mse'],
-        default='mse',
+        choices=['mse', 'mae'],
+        default='mae',
         help='Loss function used for training.'
     )
 
@@ -217,7 +217,7 @@ def train(train_config):
 
     train_loader, valid_loader = load_data(train_config)
 
-    trainer.train(model, train_loader, valid_loader, optimizer, criterion,
+    trainer.train(model, train_config.model_type, train_loader, valid_loader, optimizer, criterion,
                   train_config.max_epochs, train_config.patience, train_config.learning_rate_patience, train_config.fps)
 
 
@@ -239,8 +239,8 @@ def load_data(train_config):
     data_dirs = os.listdir(dataset_path)
     random.shuffle(data_dirs)
     split_index = int(0.8 * len(data_dirs))
-    train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
-    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
+    train_paths = [dataset_path / dir_name for dir_name in data_dirs[:3]]
+    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[3:4]]
 
     if train_config.model_type == "pilotnet":
         train_dataset = NvidiaDataset(train_paths)
