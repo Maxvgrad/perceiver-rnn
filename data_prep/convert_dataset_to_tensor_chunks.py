@@ -11,8 +11,8 @@ parser = argparse.ArgumentParser(description='Copy a file from one directory to 
 parser.add_argument('--target_dir', default=r'./tensor_dataset', type=str, help='The path to the destination file')
 args = parser.parse_args()
 
-#source_dir = Path('/gpfs/space/projects/rally2023/rally-estonia-cropped-antialias')
-source_dir = Path('./data_stuff/rally-estonia-cropped-antialias')
+source_dir = Path('/gpfs/space/projects/rally2023/rally-estonia-cropped-antialias')
+#source_dir = Path('./data_stuff/rally-estonia-cropped-antialias')
 target_dir = Path(args.target_dir)
 data_dirs = os.listdir(source_dir)
 data_dirs = [Path(directory) for directory in data_dirs]
