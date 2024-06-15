@@ -8,10 +8,11 @@ import shutil
 import argparse
 
 parser = argparse.ArgumentParser(description='Copy a file from one directory to another.')
-parser.add_argument('target_dir', type=str, help='The path to the destination file')
+parser.add_argument('--target_dir', default=r'./tensor_dataset', type=str, help='The path to the destination file')
 args = parser.parse_args()
 
-source_dir = Path('/gpfs/space/projects/rally2023/rally-estonia-cropped-antialias')
+#source_dir = Path('/gpfs/space/projects/rally2023/rally-estonia-cropped-antialias')
+source_dir = Path('./data_stuff/rally-estonia-cropped-antialias')
 target_dir = Path(args.target_dir)
 data_dirs = os.listdir(source_dir)
 data_dirs = [Path(directory) for directory in data_dirs]
@@ -23,6 +24,7 @@ os.makedirs(target_dir,exist_ok=True)
 for data_dir in data_dirs:
     frames_df_source = data_dir / 'nvidia_frames.csv'
     path_name = data_dir.stem
+    print(f'Working on {path_name}')
 
     path_target_dir = target_dir / path_name
     os.makedirs(path_target_dir, exist_ok=True)
@@ -32,6 +34,8 @@ for data_dir in data_dirs:
     image_dirs = glob(str(data_dir) + '/front_wide/*')
     dataset_tensor = torch.empty(len(image_dirs), 3, 68, 264)
     for i, img_dir in enumerate(image_dirs):
+        if i % 500 == 0:
+            print(f'Progress {i*100/len(image_dirs):.2f}%')
         image = torchvision.io.read_image(img_dir)
         dataset_tensor[i] = image
 
