@@ -45,7 +45,6 @@ def process_directory(data_dir):
         image = torchvision.io.read_image(img_dir)
         dataset_tensor[i] = image
 
-    tensor_target = path_target_dir / 'full_img_tensor_TCHW.pth'
     torch.save(dataset_tensor, tensor_target)
     del dataset_tensor
     return path_name

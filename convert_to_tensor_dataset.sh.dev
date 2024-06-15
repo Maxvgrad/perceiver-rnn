@@ -16,4 +16,4 @@ module load miniconda3
 
 conda activate rally_challenge_env
 
-python data_prep/convert_dataset_to_tensor_chunks.py --num_workers 16
+python data_prep/convert_dataset_to_tensor_chunks.py --num_workers 12
