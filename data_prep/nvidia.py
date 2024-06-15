@@ -87,7 +87,7 @@ class NvidiaDataset(Dataset):
         frames_df = frames_df[frames_df['vehicle_speed'].notna()]
         frames_df = frames_df[frames_df[f'{camera}_filename'].notna()]
 
-        frames_df["turn_signal"].fillna(1, inplace=True)
+        frames_df.fillna({'turn_signal': 1}, inplace=True)
         frames_df["turn_signal"] = frames_df["turn_signal"].astype(int)
 
         # Removed frames marked as skipped
