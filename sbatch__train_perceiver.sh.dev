@@ -20,7 +20,7 @@ python experiment.py \
   --model-name perceiver_test \
   --model-type perceiver \
   --max-epochs 10 \
-  --num-workers 24 \
+  --num-workers 12 \
   --dataset-folder /gpfs/space/projects/rally2023/rally-estonia-cropped-antialias \
   --wandb-project wandb-test-perceiver-project \
   --learning-rate-patience 2 \
