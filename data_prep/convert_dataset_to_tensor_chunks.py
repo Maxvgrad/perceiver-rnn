@@ -40,8 +40,8 @@ def process_directory(data_dir):
     image_dirs = glob(str(data_dir) + '/front_wide/*')
     dataset_tensor = torch.empty(len(image_dirs), 3, 68, 264)
     for i, img_dir in enumerate(image_dirs):
-        # if i % 500 == 0:
-        #     print(f'Progress {i*100/len(image_dirs):.2f}%')
+        if i % 500 == 0:
+            print(f'Progress {i*100/len(image_dirs):.2f}%')
         image = torchvision.io.read_image(img_dir)
         dataset_tensor[i] = image
 

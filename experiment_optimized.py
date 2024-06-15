@@ -244,11 +244,11 @@ def load_data(train_config):
     valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
 
     if train_config.model_type == "pilotnet":   
-        train_dataset = NvidiaDataset(train_paths)
-        valid_dataset = NvidiaDataset(valid_paths)
+        train_dataset = NvidiaDatasetOptim(train_paths)
+        valid_dataset = NvidiaDatasetOptim(valid_paths)
     elif train_config.model_type == "perceiver":
-        train_dataset = NvidiaDatasetRNN(train_paths, train_config.seq_length, train_config.stride)
-        valid_dataset = NvidiaDatasetRNN(valid_paths, train_config.seq_length, train_config.stride)
+        train_dataset = NvidiaDatasetRNNOptim(train_paths, train_config.seq_length, train_config.stride)
+        valid_dataset = NvidiaDatasetRNNOptim(valid_paths, train_config.seq_length, train_config.stride)
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
         sys.exit()
