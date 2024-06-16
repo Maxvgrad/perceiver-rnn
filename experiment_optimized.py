@@ -151,6 +151,11 @@ def parse_arguments():
         default=52,
         help="Number of paths to use for training"
     )
+    argparser.add_argument(
+        '--perceiver_latent_dim',
+        type=int,
+        default=512,
+    )
 
 
     return argparser.parse_args()
@@ -174,6 +179,7 @@ class TrainingConfig:
         self.stride = args.stride
         self.perciever_img_pre_type = args.perciever_img_pre_type
         self.perciever_in_channels = args.perciever_in_channels
+        self.perceiver_latent_dim = args.perceiver_latent_dim
         self.num_paths = args.num_paths
         self.fps = 30
 
@@ -217,7 +223,7 @@ def train(train_config):
             depth = 1,                   # depth of net. The shape of the final attention mechanism will be:
                                          #   depth * (cross attention -> self_per_cross_attn * self attention)
             num_latents = 256,           # number of latents, or induced set points, or centroids. different papers giving it different names
-            latent_dim = 512,            # latent dimension
+            latent_dim = train_config.perceiver_latent_dim,            # latent dimension
             cross_heads = 1,             # number of heads for cross attention. paper said 1
             latent_heads = 4,            # number of heads for latent self attention, 8
             cross_dim_head = 64,         # number of dimensions per cross attention head
@@ -229,7 +235,7 @@ def train(train_config):
             fourier_encode_data = True,  # whether to auto-fourier encode the data, using the input_axis given. defaults to True, but can be turned off if you are fourier encoding the data yourself
             self_per_cross_attn = 2      # number of self attention blocks per cross attention
         )
-        steering_classifier = MLPPredictor(512, 64)
+        steering_classifier = MLPPredictor(train_config.perceiver_latent_dim, 64)
         
         model = PerceiverRNN(pmodel, steering_classifier, preprocess=train_config.perciever_img_pre_type)
         trainer = PerceiverTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
@@ -337,6 +343,7 @@ if __name__ == "__main__":
                     "learning_rate": config.learning_rate,
                     "weight_decay": config.weight_decay,
                     "num_paths": config.num_paths,
+                    "latent_dim": config.perceiver_latent_dim
             })
         train(config)
         if config.wandb_project:
