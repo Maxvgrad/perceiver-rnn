@@ -124,7 +124,7 @@ It remains unclear exactly what caused these issues with the architecture. Some 
 
 ### Final PilotNet results 
 
-Here we have our results compared to our initial baseline model and last year's competition winners ([rally-estonia-challenge-2023-results][1]).
+Here we have our results compared to our initial baseline model and last year's competition winners ([rally-estonia-challenge-2023-results][1]). 
 
 |                           | crash score | avg whiteness | avg eff. whiteness |
 |---------------------------|-------------|---------------|--------------------|
@@ -133,7 +133,7 @@ Here we have our results compared to our initial baseline model and last year's 
 | baseline-pilotnet-2ep (steering)     | 240         | 56.96         | 3.13               |
 | Anything_3 (conditional, 2023 winners) | 167         | -             | 2.718              |
 
-
+The parameters for the models are in Appendix B.
 ## Conclusion
 
 In this project, we experimented with two model architectures: PilotNet and Perceiver.
@@ -156,7 +156,7 @@ All project members contributed equally to the blogpost.
 
 ## Appendix-B
 
-| Parameter     | pilotnet-without-aug | pilotnet-7ep-aug |
+| Parameter     | tuned-pilotnet-without-aug | pilotnet-7ep-aug |
 |---------------|----------------------|------------------|
 | augment       | 0                    | 1                |
 | epochs        | 10                   | 7                |
