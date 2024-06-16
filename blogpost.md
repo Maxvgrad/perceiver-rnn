@@ -100,12 +100,13 @@ The RNN version of the dataset and data loader was based mainly on the PilotNet 
 
 We also optimized the the dataloaders by first converting all images from a given driven path into a PyTorch tensor and saving them to disk. Durning training, the tensors are loaded and cached accordingly in the DataSet instance. This allows for much faster training when using unshuffled DataLoader thanks to a reduction in storage IOPS, compared to loading each image from disk individually.
 
+
 ## Results
 ### PilotNet
 
 We performed hyperparameter optimization in two stages. In the first stage, we ran optimization on a small subsample of the dataset to optimize hyperparameters such as learning rate, weight decay, batch size, and image augmentation (see results in [Appendix A](#Appendix-A)). In the second stage, we reduced the hyperparameter ranges and ran optimization on the full dataset (see results in [Appendix B](#Appendix-B)).
 
-We then selected two best-performing models on the evaluation dataset, with and without data augmentation. The best model without augmentation was tested by running the VISTA evaluation on the official rally competition's test dataset. However, we did not obtain VISTA evaluation results for the best tuned model with augmentation due to time constraints. 
+We then selected two best-performing models on the evaluation dataset, with and without data augmentation. However, we did not obtain VISTA evaluation results for the former due to time constraints. 
 
 #### Data augmentation
 Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Blur, Random Sharpness Adjustment, and Color Jitter were added to try and train a robust end-to-end driving models. These transformations simulated a wide array of real-world visual conditions including variable lighting, weather effects, and optical variations, which are commonly encountered during driving.
@@ -117,7 +118,7 @@ Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Bl
 - Color Variations (Color Jitter): Adjusts image brightness, contrast, and saturation to train the model to recognize important navigational elements under various lighting conditions, essential for tasks like traffic light detection and interpreting road signs.
 ![img_augments_preview](https://github.com/gorixInc/rally-challenge-24/assets/81022307/8a65bf91-77ad-42a4-92dd-3e7ce4210cb7)
 
-A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset.
+We trained a PilotNet model on the augmented images for 7 epochs.
 
 ### Perceiver results
 For our experiments with the Perceiver we did not use data augmentation and trained on only 4 paths from the dataset as to iterate on the model faster. The models were trained with sequences of images of length 128. For all our tests with different parameters, we observed models very quickly converging to local minima with very poor performance. For fixed batch size and sequence length, all models converged to approximately the same high loss value, high prediction RMSE, and in most cases approached a 0 whiteness score, meaning the models likely predicted a constant steering angle.
