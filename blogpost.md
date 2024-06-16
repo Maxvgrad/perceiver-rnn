@@ -107,10 +107,11 @@ A PilotNet model was trained on the augmented images for 7 epochs. The model was
 
 ### Perceiver results
 
-<img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/8eaaa01e-3978-43ec-ba90-2be7e4c30f86" alt="drawing" style="width:400px;"/>
+
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/0c4e2874-0115-4306-bb1c-644acd6c9e13" alt="drawing" style="width:400px;"/>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/6bbda71a-030e-4f2c-9c38-1c04fae7eb26" alt="drawing" style="width:400px;"/>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/f731d6b1-3c0f-48a5-9b1f-965a9fcff761" alt="drawing" style="width:400px;"/>
+<img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/8eaaa01e-3978-43ec-ba90-2be7e4c30f86" alt="drawing" style="width:400px;"/>
 
 
 
