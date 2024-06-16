@@ -65,20 +65,8 @@ TODO (GORDEI)
 ### Data Loader
 (GORDEI & FILLIP)
 ## Results
-### Preliminary experiments baseline model
-We trained the Baseline PilotNet model for 2 epochs and ran the VISTA evaluation. To put our results into perspective, we also ran the same evaluation on untrained baseline PilotNet, and also the two conditional models provided with VISTA evaluation repository - steering-2 and steering-overfit. Below are the results
-
-|                        | crash score | avg whiteness | avg eff. whiteness |
-|------------------------|-------------|---------------|--------------------|
-| baseline-pilotnet-2ep  | 1           | 37.95         | 0.96               |
-| baseline-pilotnet-untr | 155         | 0.01          | 2.33               |
-| steering-2             | 2           | 39.48         | 0.83               |
-| steering-overfit       | 2           | 22.70         | 0.74               |
-
-Considering the very low crash score of the trained models, it appears we need to tweak our evaluation procedure.
-
-### PilotNet results
-### Data augmentation
+### PilotNet
+#### Data augmentation
 Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Blur, Random Sharpness Adjustment, and Color Jitter were added to try and train a robust end-to-end driving models. These transformations simulated a wide array of real-world visual conditions including variable lighting, weather effects, and optical variations, which are commonly encountered during driving.
 
 - Weather Simulations (AddShadow, AddSnowdrops, AddRainStreaks): These augmentations mimic different weather conditions like shadows from overhead objects, snowfall, and rain streaks on the lens, helping the model to process and operate under diverse environmental challenges.
@@ -86,23 +74,28 @@ Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Bl
 - Optical Effects (Gaussian Blur, Random Sharpness Adjustment): These ensure the model can function reliably despite variations in image clarity due to camera focus issues or external factors affecting visibility, such as fog or motion blur.
 
 - Color Variations (Color Jitter): Adjusts image brightness, contrast, and saturation to train the model to recognize important navigational elements under various lighting conditions, essential for tasks like traffic light detection and interpreting road signs.
-(MAKS, RAIN)
-### Perceiver results
-(GORDEI)
-#### Data augmentation
-
 ![img_augments_preview](https://github.com/gorixInc/rally-challenge-24/assets/81022307/8a65bf91-77ad-42a4-92dd-3e7ce4210cb7)
 
-A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset. We got the following results:
+A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset.
 
+
+#### Weights and Biases and PilotNet hyperparameter tuning
+(MAKS)
+
+
+### Perceiver
+(GORDEI)
+
+
+### Final results 
+
+Here we have our results compared to our initial baseline model and last year's competition winners (https://adl.cs.ut.ee/blog/rally-estonia-challenge-2023-results).
 
 |                        | crash score | avg whiteness | avg eff. whiteness |
 |------------------------|-------------|---------------|--------------------|
-| pilotnet-7ep-aug  | 171           | 49.71         | 3.21               |
-
-#### Final results 
-
-**PUT RESULTS FOR TUNED MODELS HERE**
+| pilotnet-7ep-aug       | 171           | 49.71         | 3.21             |
+| baseline-pilotnet-2ep  | 240           | 56.96         | 3.13             |
+| Anything_3 (2023 winners)| 167           | -             | 2.718            |
 
 The programmatic model evaluation of a PilotNet trained on 2 epochs gave next results:
 ```
@@ -110,8 +103,7 @@ The programmatic model evaluation of a PilotNet trained on 2 epochs gave next re
 ```
 Training one epoch took 4 hours on average. From the results we can see that calculated whiteness can significantly differ from the values given by VISTA simulation, so both methods should be used and results combined together, to get the best idea of model's capabilities. The PilotNet was then trained 2 epochs more to look at the progression of the training and validation loss values.
 
-### Weights and Biases and PilotNet hyperparameter tuning
-(MAKS)
+
 ## Conclusion
 (GORDEI)
 
