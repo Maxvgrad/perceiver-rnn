@@ -60,10 +60,26 @@ class PilotNet(nn.Module):
 ```
 
 #### Perceiver
-We adapted the Perceiver model, introduced in the article: Perceiver: General Perception with Iterative Attention (https://arxiv.org/abs/2103.03206). We used a single layer of the model as and RNN cell for our time-series task. At each timestep, the image from the frontal camera is passed to a CNN to extract on the vehicle is passed features and reduce dimensionality. The resultant feature map is passed to the Perceiver along with the latent array from ${t-1}$ timestep. We use the latent array from the $t$ timestep to predict the steering angle by passing it to an MLP layer. The latent array is then passed to the next timestep. The model architecutre can be seen here: 
+We adapted the Perceiver model, introduced in the article: Perceiver: General Perception with Iterative Attention (https://arxiv.org/abs/2103.03206). We based our model code on Perceiver implementation by Phil Wang, which can be found here: https://github.com/lucidrains/perceiver-pytorch.  
 
+In our adaptation, we used a single layer of the model as and RNN cell for our time-series task. At each timestep, the image from the frontal camera of the vehicle is passed to a CNN to extract is passed features and reduce dimensionality. The resultant feature map is passed to the Perceiver along with the latent array from ${t-1}$ timestep. We use the latent array from the $t$ timestep to predict the steering angle by passing it to an MLP layer. The latent array is then passed to the next timestep. The model architecutre can be seen here: 
 
-The CNN layer consists of 2 convolutions with ReLu activation, followed by a max pool layer
+The CNN consists of 2 convolutions with ReLu activation, followed by a max pool layer. The MLP has two linear layers with ReLU activation and the final layer predicting the steering angle. For the Perceiver we used the following parameters:           
+ - num_freq_bands = 6      
+ - max_freq = 10              
+ - depth = 1                  
+ - num_latents = 256           
+ - latent_dim = 512/64    
+ - cross_heads = 1             
+ - latent_heads = 4          
+ - cross_dim_head = 64
+ - latent_dim_head = 64       
+ - num_classes = 1             
+ - attn_dropout = 0/0.4
+ - ff_dropout = 0/0.4
+ - fourier_encode_data = True  
+ - self_per_cross_attn = 2  (number of self attention blocks)
+
 ### Data Loader
 (GORDEI & FILLIP)
 ## Results
