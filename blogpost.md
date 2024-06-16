@@ -84,7 +84,15 @@ The CNN consists of 2 convolutions with ReLu activation, followed by a max pool 
  - self_per_cross_attn = 2  (number of self attention blocks)
 
 ### Data Loader
-(GORDEI & FILLIP)
+
+The data loader implementation for both PilotNet and Perceiver was based on the `NvidiaDataset()` class presented in the e2e-rally-estonia repository (https://github.com/UT-ADL/e2e-rally-estonia). During the loader initialization, the desired transformations and color space can be chosen. For each drive, a pandas DataFrame is created, which contains the paths to each frame of the drive and metadata, including steering angle, vehicle speed, turn signal data, etc. The DataFrames for each separate drive are then concatenated into a single DataFrame, containing paths and metadata for all frames across all drives.
+
+The mean absolute error (MAE) was shown (https://www.mdpi.com/1424-8220/23/5/2845) to be a more suitable loss function for this task than mean squared error (MSE). Therefore, MAE was primarily used. The Adam optimizer with weight decay was employed, and to prevent overfitting, early stopping was implemented with a patience of 10 epochs without a decrease in validation loss.
+
+For PilotNet, the data loader extracted one random frame from the training set and predicted the steering angle for it. At the end of each epoch, a set of metrics, including whiteness and MAE, was tracked.
+
+The RNN version of the dataset and data loader was based mainly on the PilotNet version, but with specific adaptations for the RNN architecture. The unshuffled frames in the form of a DataFrame were initially divided into a number of sequences of configurable length with a certain stride between the sequences. During each iteration of the data loader, one such sequence is extracted, maintaining the chronological order of the frames. Each frame is forward-passed to the model separately, together with a latent array. The loss is then calculated for each time step in the sequence, along with a set of metrics at the end of each epoch.
+
 ## Results
 ### PilotNet
 
