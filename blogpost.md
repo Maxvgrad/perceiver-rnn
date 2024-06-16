@@ -10,7 +10,7 @@ The dataset contains the cropped and antialiased images from the frontal camera 
 
 For the baseline, we don't augment the dataset in any way. The only preprocessing step that is done is normalization by dividing pixel values of the images by 255. 
 
-The dataset was prepared using using PyTorch native Dataset class extension and ingested to a model using dataloader. Together with a batch of images the steering angle and conditional mask were passed as well.
+The dataset was prepared using PyTorch native Dataset class extension and ingested to a model using dataloader. Together with a batch of images the steering angle and conditional mask were passed as well.
 
 
 ### Metrics
@@ -25,7 +25,7 @@ For the qualitative evaluation of the model we use the VISTA simulation with the
 
 ### Models
 #### Baseline 
-For the baseline model we're using the PilotNet implementaiton introduced in https://arxiv.org/pdf/1604.07316. We keep the architecutre uchanged, and use the following layers:
+For the baseline model we're using the PilotNet implementaiton introduced in ["End to End Learning for Self-Driving Cars"][2]. We keep the architecutre uchanged, and use the following layers:
 ```
 class PilotNet(nn.Module):
     def __init__(self) -> None:
@@ -66,6 +66,12 @@ TODO (GORDEI)
 (GORDEI & FILLIP)
 ## Results
 ### PilotNet
+
+We performed hyperparameter optimization in two stages. In the first stage, we ran optimization on a small subsample of the dataset to optimize hyperparameters such as learning rate, weight decay, batch size, and image augmentation (see results in [Appendix A](#Appendix-A)). In the second stage, we reduced the hyperparameter ranges and ran optimization on the full dataset (see results in [Appendix B](#Appendix-B)).
+
+We then selected two best-performing models on the evaluation dataset, with and without data augmentation. 
+The models were subsequently evaluated by running the VISTA evaluation on the official rally competition's test dataset.
+
 #### Data augmentation
 Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Blur, Random Sharpness Adjustment, and Color Jitter were added to try and train a robust end-to-end driving models. These transformations simulated a wide array of real-world visual conditions including variable lighting, weather effects, and optical variations, which are commonly encountered during driving.
 
@@ -78,24 +84,20 @@ Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Bl
 
 A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset.
 
-
-#### Weights and Biases and PilotNet hyperparameter tuning
-(MAKS)
-
-
 ### Perceiver
 (GORDEI)
 
 
 ### Final results 
 
-Here we have our results compared to our initial baseline model and last year's competition winners (https://adl.cs.ut.ee/blog/rally-estonia-challenge-2023-results).
+Here we have our results compared to our initial baseline model and last year's competition winners ([rally-estonia-challenge-2023-results][1]).
 
-|                        | crash score | avg whiteness | avg eff. whiteness |
-|------------------------|-------------|---------------|--------------------|
-| pilotnet-7ep-aug       | 171           | 49.71         | 3.21             |
-| baseline-pilotnet-2ep  | 240           | 56.96         | 3.13             |
-| Anything_3 (2023 winners)| 167           | -             | 2.718            |
+|                           | crash score | avg whiteness | avg eff. whiteness |
+|---------------------------|-------------|---------------|--------------------|
+| pilotnet-7ep-aug          | 171         | 49.71         | 3.21               |
+| pilotnet-without-aug      | 202         | 57.13         | 3.41               |
+| baseline-pilotnet-2ep     | 240         | 56.96         | 3.13               |
+| Anything_3 (2023 winners) | 167         | -             | 2.718              |
 
 The programmatic model evaluation of a PilotNet trained on 2 epochs gave next results:
 ```
@@ -113,3 +115,20 @@ In the initial part of our project, we detailed our steps and findings in recrea
 Our baseline model, PilotNet, showed promising results with a crash score of 1 after 2 epochs of training, demonstrating significant improvement over an untrained model. Metrics such as MAE, whiteness, and effective whiteness provided insights into performance and areas for enhancement. Next steps include experimenting with additional architectures like the Perceiver model, refining evaluation procedures, and incorporating data augmentation techniques. 
 
 *Project contributions here*
+
+## Appendix-A
+
+![pilotnet-tune-hyperparameter-dataset-short.svg](assets%2Fimages%2Fpilotnet-tune-hyperparameter-dataset-short.svg)
+
+## Appendix-B
+
+| Parameter     | pilotnet-without-aug | pilotnet-7ep-aug |
+|---------------|----------------------|------------------|
+| augment       | 0                    | 1                |
+| epochs        | 10                   | 7                |
+| batch_size    | 256                  | ??               |
+| learning_rate | 0.000712             | ??               |
+| weight_decay  | 0.026266             | ??               |
+
+![pilotnet-tune-hyperparameter-dataset-full.svg](assets%2Fimages%2Fpilotnet-tune-hyperparameter-dataset-full.svg)
+
