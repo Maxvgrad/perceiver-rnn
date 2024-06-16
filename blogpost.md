@@ -1,5 +1,7 @@
 # The Rally Estonia Challenge 2024
 **Project members:** Maksim Ploter, Gordei Pribõtkin, Filips Petuhovs, Rain Eichhorn
+
+**Project supervisors** Ardi Tampuu, Tambet Matiisen
 ## Introduction 
 This project is a venture into developing a model for autonomous steering for a self-driving task. The challenge for autonomous vehicle is navigating rural roads in Estonia at moderate speed (15-35 km/h), without traffic. In this project we experiment with two deep-learning architectures and report our results. We host our code in the following repository: https://github.com/gorixInc/rally-challenge-24
 ## Methods
