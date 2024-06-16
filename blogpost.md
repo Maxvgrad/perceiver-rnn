@@ -1,5 +1,7 @@
 # The Rally Estonia Challenge 2024
 **Project members:** Maksim Ploter, Gordei Pribõtkin, Filips Petuhovs, Rain Eichhorn
+
+**Project supervisors** Ardi Tampuu, Tambet Matiisen
 ## Introduction 
 This project is a venture into developing a model for autonomous steering for a self-driving task. The challenge for autonomous vehicle is navigating rural roads in Estonia at moderate speed (15-35 km/h), without traffic. In this project we experiment with two deep-learning architectures and report our results. We host our code in the following repository: https://github.com/gorixInc/rally-challenge-24
 ## Methods
@@ -61,7 +63,7 @@ class PilotNet(nn.Module):
 ```
 
 #### Perceiver
-We adapted the Perceiver model, introduced in the article: Perceiver: General Perception with Iterative Attention (https://arxiv.org/abs/2103.03206). We based our model code on Perceiver implementation by Phil Wang, which can be found here: https://github.com/lucidrains/perceiver-pytorch.  
+We adapted the Perceiver model, introduced in the article: ["Perceiver: General Perception with Iterative Attention"][3].  We based our implementation on the [perceiver-pytorch implementation by Phil Wang][4].
 
 In our adaptation, we used a single layer of the model as and RNN cell for our time-series task. At each timestep, the image from the frontal camera of the vehicle is passed to a CNN to extract is passed features and reduce dimensionality. The resultant feature map is passed to the Perceiver along with the latent array from ${t-1}$ timestep. We use the latent array from the $t$ timestep to predict the steering angle by passing it to an MLP layer. The latent array is then passed to the next timestep. The model architecutre can be seen here: 
 
@@ -117,7 +119,7 @@ A PilotNet model was trained on the augmented images for 7 epochs. The model was
 For our experiments with the Perceiver we did not use data augmentation and trained on only 4 paths from the dataset as to iterate on the model faster. The model was trained with sequences of images of length 128. For all our tests with different parameters, we observed models very quickly converging local minima with very poor performance. For fixed batch size and sequence length, all models converged to approximately the same high loss value, high prediction RMSE, and in most cases approached a 0 whiteness score, meaning the models likely predicted a constant turn angle.
 In the figure below you can observe the described effects:
 
-<div align='left'>
+<div align='left' class="image-row">
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/06f06ce5-cb91-4a57-90e8-ce18ce4c70ef" alt="drawing" style="width:400px;"/>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/300a583a-c4a8-4922-b85b-185c4a3e79e6" alt="drawing" style="width:400px;"/>
 
@@ -125,10 +127,10 @@ In the figure below you can observe the described effects:
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/4b3128e3-48e2-46a5-a597-bb81dabd51f4" alt="drawing" style="width:400px;"/>
 </div>
 
-It remains unclear exactly what caused these issues with the model. Some possible explanations include incorrect Perceiver configuration or lack of more sophisticated regularization methods for our purpose.
+It remains unclear exactly what caused these issues with the architecture. Some possible explanations include incorrect Perceiver configuration or lack of more sophisticated regularization methods for our purpose.
 
 
-### Final results 
+### Final PilotNet results 
 
 Here we have our results compared to our initial baseline model and last year's competition winners ([rally-estonia-challenge-2023-results][1]).
 
@@ -141,18 +143,24 @@ Here we have our results compared to our initial baseline model and last year's 
 
 
 ## Conclusion
-(GORDEI)
 
+In this project, we experimented with two model architectures: PilotNet and Perceiver.
 
-In the initial part of our project, we detailed our steps and findings in recreating a model for autonomous steering on rural roads in Estonia. We established the dataset, baseline model, and evaluation metrics, and conducted preliminary experiments.
+Our results demonstrate that data augmentation strategies improved the performance of the PilotNet model. PilotNet model achieved a slightly poorer crash score than the Rally Estonia competition winner of 2023, but was better than the model that took second place.
 
-Our baseline model, PilotNet, showed promising results with a crash score of 1 after 2 epochs of training, demonstrating significant improvement over an untrained model. Metrics such as MAE, whiteness, and effective whiteness provided insights into performance and areas for enhancement. Next steps include experimenting with additional architectures like the Perceiver model, refining evaluation procedures, and incorporating data augmentation techniques. 
+We adapted the Perceiver architecture to work with frames sequences rather. Despite exploring various configurations and training on a limited dataset for faster iteration, the Perceiver models consistently converged to suboptimal solutions. Further work is required to address the limitations observed with our adapted Perceiver architecture.
 
-*Project contributions here*
+### Contributions
+- Maksim Ploter: implementing training infrastructure, wandb set-up and implementation, Pilotnet tuning and evaluation
+- Gordei Pribõtkin: implementing models, implementing RNN dataloader, Perceiver evaluation, VISTA set-up
+- Filips Petuhovs: implementing dataloaders, implementing trainers, initial experiments
+- Rain Eichhorn: VISTA set-up, implementing data preprocessing, PilotNet evaluation
+
+All project members contributed equally to the blogpost.
 
 ## Appendix-A
 
-![pilotnet-tune-hyperparameter-dataset-short.svg](assets%2Fimages%2Fpilotnet-tune-hyperparameter-dataset-short.svg)
+![pilotnet-tune-hyperparameter-dataset-short.svg](https://github.com/gorixInc/rally-challenge-24/blob/master/assets/images/pilotnet-tune-hyperparameter-dataset-short.svg)
 
 ## Appendix-B
 
@@ -164,7 +172,9 @@ Our baseline model, PilotNet, showed promising results with a crash score of 1 a
 | learning_rate | 0.000712             | 0.001            |
 | weight_decay  | 0.026266             | 0.01             |
 
-![pilotnet-tune-hyperparameter-dataset-full.svg](assets%2Fimages%2Fpilotnet-tune-hyperparameter-dataset-full.svg)
+![pilotnet-tune-hyperparameter-dataset-full.svg](https://github.com/gorixInc/rally-challenge-24/blob/master/assets/images/pilotnet-tune-hyperparameter-dataset-full.svg)
 
 [1]: https://adl.cs.ut.ee/blog/rally-estonia-challenge-2023-results
 [2]: https://arxiv.org/abs/1604.07316
+[3]: https://arxiv.org/abs/1604.07316
+[4]: https://github.com/lucidrains/perceiver-pytorch 
