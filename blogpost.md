@@ -111,7 +111,7 @@ A PilotNet model was trained on the augmented images for 7 epochs. The model was
 For our experiments with the Perceiver we did not use data augmentation and trained on only 4 paths from the dataset as to iterate on the model faster. The model was trained with sequences of images of length 128. For all our tests with different parameters, we observed models very quickly converging local minima with very poor performance. For fixed batch size and sequence length, all models converged to approximately the same high loss value, high prediction RMSE, and in most cases approached a 0 whiteness score, meaning the models likely predicted a constant turn angle.
 In the figure below you can observe the described effects:
 
-<div align='left'>
+<div align='left' class="image-row">
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/06f06ce5-cb91-4a57-90e8-ce18ce4c70ef" alt="drawing" style="width:400px;"/>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/300a583a-c4a8-4922-b85b-185c4a3e79e6" alt="drawing" style="width:400px;"/>
 
@@ -152,7 +152,7 @@ All project members contributed equally to the blogpost.
 
 ## Appendix-A
 
-![pilotnet-tune-hyperparameter-dataset-short.svg](assets%2Fimages%2Fpilotnet-tune-hyperparameter-dataset-short.svg)
+![pilotnet-tune-hyperparameter-dataset-short.svg](https://github.com/gorixInc/rally-challenge-24/blob/master/assets/images/pilotnet-tune-hyperparameter-dataset-short.svg)
 
 ## Appendix-B
 
@@ -164,7 +164,7 @@ All project members contributed equally to the blogpost.
 | learning_rate | 0.000712             | 0.001            |
 | weight_decay  | 0.026266             | 0.01             |
 
-![pilotnet-tune-hyperparameter-dataset-full.svg](assets%2Fimages%2Fpilotnet-tune-hyperparameter-dataset-full.svg)
+![pilotnet-tune-hyperparameter-dataset-full.svg](https://github.com/gorixInc/rally-challenge-24/blob/master/assets/images/pilotnet-tune-hyperparameter-dataset-full.svg)
 
 [1]: https://adl.cs.ut.ee/blog/rally-estonia-challenge-2023-results
 [2]: https://arxiv.org/abs/1604.07316
