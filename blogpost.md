@@ -87,13 +87,18 @@ The CNN consists of 2 convolutions with ReLu activation, followed by a max pool 
 
 ### Data Loader
 
-The data loader implementation for both PilotNet and Perceiver was based on the `NvidiaDataset()` class presented in the e2e-rally-estonia repository (https://github.com/UT-ADL/e2e-rally-estonia). During the loader initialization, the desired transformations and color space can be chosen. For each drive, a pandas DataFrame is created, which contains the paths to each frame of the drive and metadata, including steering angle, vehicle speed, turn signal data, etc. The DataFrames for each separate drive are then concatenated into a single DataFrame, containing paths and metadata for all frames across all drives.
+The data loader implementation for both PilotNet and Perceiver was based on the `NvidiaDataset()` class presented in the [e2e-rally-estonia repository][5]. During the loader initialization, the desired transformations and color space can be chosen. For each driven path, a pandas DataFrame is created, which contains the file paths to each frame from the camera and metadata, including steering angle, vehicle speed, turn signal data, etc. The DataFrames for each separate driven path are then concatenated into a single DataFrame, containing image paths and metadata for all frames across all paths. For PilotNet, the dataloader extracts a batch of images and corresponding steering angles.
 
-The mean absolute error (MAE) was shown (https://www.mdpi.com/1424-8220/23/5/2845) to be a more suitable loss function for this task than mean squared error (MSE). Therefore, MAE was primarily used. The Adam optimizer with weight decay was employed, and to prevent overfitting, early stopping was implemented with a patience of 10 epochs without a decrease in validation loss.
 
-For PilotNet, the data loader extracted one random frame from the training set and predicted the steering angle for it. At the end of each epoch, a set of metrics, including whiteness and MAE, was tracked.
+<!-- The mean absolute error (MAE) was shown (https://www.mdpi.com/1424-8220/23/5/2845) to be a more suitable loss function for this task than mean squared error (MSE). Therefore, MAE was primarily used. The Adam optimizer with weight decay was employed, and to prevent overfitting, early stopping was implemented with a patience of 10 epochs without a decrease in validation loss. -->
 
-The RNN version of the dataset and data loader was based mainly on the PilotNet version, but with specific adaptations for the RNN architecture. The unshuffled frames in the form of a DataFrame were initially divided into a number of sequences of configurable length with a certain stride between the sequences. During each iteration of the data loader, one such sequence is extracted, maintaining the chronological order of the frames. Each frame is forward-passed to the model separately, together with a latent array. The loss is then calculated for each time step in the sequence, along with a set of metrics at the end of each epoch.
+
+
+The RNN version of the dataset and data loader was based mainly on the PilotNet version, but with specific adaptations for the RNN architecture. The unshuffled frames in the form of a DataFrame were initially divided into a number of sequences of configurable length and stride between the sequences. During each iteration of the data loader, a bach of such sequences is extracted, maintaining the chronological order of the frames. 
+
+<!-- Each frame is forward-passed to the model separately, together with a latent array. The loss is then calculated for each time step in the sequence, along with a set of metrics at the end of each epoch. -->
+
+We also optimized the the dataloaders by first converting all images from a given path into a PyTorch tensor and saving them to disk. Durning training, the tensors are then loaded and cached accordingly in the DataSet instance. This allows for much faster training when using unshuffled DataLoader thanks to a reduction in storage IOPS, compared to loading each image from disk individually.
 
 ## Results
 ### PilotNet
@@ -152,7 +157,7 @@ We adapted the Perceiver architecture to work with frames sequences rather. Desp
 
 ### Contributions
 - Maksim Ploter: implementing training infrastructure, wandb set-up and implementation, Pilotnet tuning and evaluation
-- Gordei Pribõtkin: implementing models, implementing RNN dataloader, Perceiver evaluation, VISTA set-up
+- Gordei Pribõtkin: implementing models, implementing RNN dataloader, Perceiver evaluation, VISTA set-up, dataloader optimization
 - Filips Petuhovs: implementing dataloaders, implementing trainers, initial experiments
 - Rain Eichhorn: VISTA set-up, implementing data preprocessing, PilotNet evaluation
 
@@ -160,7 +165,7 @@ All project members contributed equally to the blogpost.
 
 ## Appendix-A
 
-![pilotnet-tune-hyperparameter-dataset-short.svg](https://github.com/gorixInc/rally-challenge-24/blob/master/assets/images/pilotnet-tune-hyperparameter-dataset-short.svg)
+![pilotnet-tune-hyperparameter-dataset-short.svg](https://raw.githubusercontent.com/gorixInc/rally-challenge-24/4fd53b46dcfbac89f5e293d065d9da04ce07cbe6/assets/images/pilotnet-tune-hyperparameter-dataset-short.svg)
 
 ## Appendix-B
 
@@ -172,9 +177,10 @@ All project members contributed equally to the blogpost.
 | learning_rate | 0.000712             | 0.001            |
 | weight_decay  | 0.026266             | 0.01             |
 
-![pilotnet-tune-hyperparameter-dataset-full.svg](https://github.com/gorixInc/rally-challenge-24/blob/master/assets/images/pilotnet-tune-hyperparameter-dataset-full.svg)
+![pilotnet-tune-hyperparameter-dataset-full.svg](https://raw.githubusercontent.com/gorixInc/rally-challenge-24/4fd53b46dcfbac89f5e293d065d9da04ce07cbe6/assets/images/pilotnet-tune-hyperparameter-dataset-full.svg)
 
 [1]: https://adl.cs.ut.ee/blog/rally-estonia-challenge-2023-results
 [2]: https://arxiv.org/abs/1604.07316
 [3]: https://arxiv.org/abs/1604.07316
 [4]: https://github.com/lucidrains/perceiver-pytorch 
+[5]: https://github.com/UT-ADL/e2e-rally-estonia
