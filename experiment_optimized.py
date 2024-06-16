@@ -156,6 +156,11 @@ def parse_arguments():
         type=int,
         default=512,
     )
+    argparser.add_argument(
+        '--perceiver-dropout',
+        type=float,
+        default=0,
+    )
 
 
     return argparser.parse_args()
@@ -180,6 +185,7 @@ class TrainingConfig:
         self.perciever_img_pre_type = args.perciever_img_pre_type
         self.perciever_in_channels = args.perciever_in_channels
         self.perceiver_latent_dim = args.perceiver_latent_dim
+        self.perceiver_dropout = args.perceiver_dropout
         self.num_paths = args.num_paths
         self.fps = 30
 
@@ -229,8 +235,8 @@ def train(train_config):
             cross_dim_head = 64,         # number of dimensions per cross attention head
             latent_dim_head = 64,        # number of dimensions per latent self attention head
             num_classes = 1,             # output number of classes
-            attn_dropout = 0.,
-            ff_dropout = 0.,
+            attn_dropout = train_config.perceiver_dropout,
+            ff_dropout = train_config.perceiver_dropout,
             weight_tie_layers = False,   # whether to weight tie layers (optional, as indicated in the diagram)
             fourier_encode_data = True,  # whether to auto-fourier encode the data, using the input_axis given. defaults to True, but can be turned off if you are fourier encoding the data yourself
             self_per_cross_attn = 2      # number of self attention blocks per cross attention
@@ -345,7 +351,8 @@ if __name__ == "__main__":
                     "weight_decay": config.weight_decay,
                     "num_paths": config.num_paths,
                     "latent_dim": config.perceiver_latent_dim,
-                    "weight_decay": config.weight_decay
+                    "weight_decay": config.weight_decay,
+                    'dropout': config.perceiver_dropout,
             })
         train(config)
         if config.wandb_project:
