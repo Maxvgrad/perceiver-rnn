@@ -4,7 +4,8 @@
 #SBATCH --partition=gpu # set the partition to gpu
 #SBATCH --gres=gpu:tesla:1 # assign a single tesla gpu
 #SBATCH --output=slurm/slurm_%x.%j.out # STDOUT
-#SBATCH --mem=64G
+#SBATCH --mem=32G
+#SBATCH --cpus-per-task=4
 
 # Here you need to run train.py with python from the virtual environment where you have all the dependencies install
 # You also have to pass the command line args (such as dataset name) to the script here, as well
