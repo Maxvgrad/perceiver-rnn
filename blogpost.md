@@ -23,7 +23,7 @@ The model is first evaluated using validation set to yield two metrics
 
 For the qualitative evaluation of the model we use the VISTA simulation with the two provided traces. The three metrics we use are:
 - *Crash score*, i.e the total number of crashes for both test traces.
-- *Whiteness*, which is a measure of how smooth the steering input is, lower whiteness means smoother input.
+- *Whiteness*.
 - *Effective whiteness*. While the exact definition of this is missing, we assume that this type of whiteness metrics normalized in some way to account for the driving conditions or the specific characteristics of the road (road with lots of sharp turns vs mostly straight road for example).
 
 ### Models
