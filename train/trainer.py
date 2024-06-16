@@ -287,6 +287,7 @@ class PerceiverTrainer(Trainer):
         return np.concatenate(all_predictions, axis=1)
 
     def train_batch(self, model, data, target_values, condition_mask, criterion):
+        model.train()
         inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device) # (T, B, H, W, C)
         target_values = rearrange(target_values, 'b t -> t b').to(self.device) # (T, B)
         
