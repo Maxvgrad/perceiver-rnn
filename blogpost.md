@@ -100,6 +100,7 @@ The RNN version of the dataset and data loader was based mainly on the PilotNet 
 
 We also optimized the the dataloaders by first converting all images from a given driven path into a PyTorch tensor and saving them to disk. Durning training, the tensors are loaded and cached accordingly in the DataSet instance. This allows for much faster training when using unshuffled DataLoader thanks to a reduction in storage IOPS, compared to loading each image from disk individually.
 
+
 ## Results
 ### PilotNet
 
