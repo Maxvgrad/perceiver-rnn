@@ -136,6 +136,11 @@ Here we have our results compared to our initial baseline model and last year's 
 
 ## Conclusion
 
+In this project, we experimented with two model architectures: PilotNet and Perceiver.
+
+Our results demonstrate that data augmentation strategies improved the performance of the PilotNet model. PilotNet model achieved a slightly higher crash score than the Rally Estonia competition winner of 2023.
+
+We adapted the Perceiver architecture to work with frames sequences rather. Despite exploring various configurations and training on a limited dataset for faster iteration, the Perceiver models consistently converged to suboptimal solutions. Further work is required to address the limitations observed with the Perceiver model.
 
 ### Contributions
 - Maksim Ploter: implementing training infrastructure, wandb set-up and implementation, Pilotnet tuning and evaluation
