@@ -107,17 +107,18 @@ A PilotNet model was trained on the augmented images for 7 epochs. The model was
 
 ### Perceiver results
 For our experiments with the Perceiver we did not use data augmentation and trained on only 4 paths from the dataset as to iterate on the model faster. The model was trained with sequences of images of length 128. For all our tests with different parameters, we observed models very quickly converging local minima with very poor performance. For fixed batch size and sequence length, all models converged to approximately the same high loss value, high prediction RMSE, and in most cases approached a 0 whiteness score, meaning the models likely predicted a constant turn angle.
-In the Figure below
+In the figure below you can observe the described effects:
 
+<div align='left'>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/06f06ce5-cb91-4a57-90e8-ce18ce4c70ef" alt="drawing" style="width:400px;"/>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/300a583a-c4a8-4922-b85b-185c4a3e79e6" alt="drawing" style="width:400px;"/>
 
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/29754aee-e5cb-42d1-b689-3b0bca37e8d3" alt="drawing" style="width:400px;"/>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/4b3128e3-48e2-46a5-a597-bb81dabd51f4" alt="drawing" style="width:400px;"/>
+</div>
 
-<p align='center'>
-    caption
-</p>
+It remains unclear exactly what caused these issues with the model. Some possible explanations include incorrect Perceiver configuration or lack of more sophisticated regularization methods for our purpose.
+
 
 ### Final results 
 
@@ -125,10 +126,10 @@ Here we have our results compared to our initial baseline model and last year's 
 
 |                           | crash score | avg whiteness | avg eff. whiteness |
 |---------------------------|-------------|---------------|--------------------|
-| pilotnet-7ep-aug          | 171         | 49.71         | 3.21               |
-| pilotnet-without-aug      | 202         | 57.13         | 3.41               |
-| baseline-pilotnet-2ep     | 240         | 56.96         | 3.13               |
-| Anything_3 (2023 winners) | 167         | -             | 2.718              |
+| pilotnet-7ep-aug (steering)          | 171         | 49.71         | 3.21               |
+| tuned-pilotnet-without-aug (steering)    | 202         | 57.13         | 3.41               |
+| baseline-pilotnet-2ep (steering)     | 240         | 56.96         | 3.13               |
+| Anything_3 (conditional, 2023 winners) | 167         | -             | 2.718              |
 
 
 ## Conclusion
