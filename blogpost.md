@@ -87,6 +87,8 @@ Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Bl
 
 - Color Variations (Color Jitter): Adjusts image brightness, contrast, and saturation to train the model to recognize important navigational elements under various lighting conditions, essential for tasks like traffic light detection and interpreting road signs.
 
+![img_augments_preview](https://github.com/gorixInc/rally-challenge-24/assets/81022307/8a65bf91-77ad-42a4-92dd-3e7ce4210cb7)
+
 A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset. We got the following results:
 
 |                        | crash score | avg whiteness | avg eff. whiteness |
