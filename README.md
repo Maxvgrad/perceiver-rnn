@@ -88,5 +88,5 @@ Next time if you want to run any tests in the notebook, you should only check th
   
 ## Converting original dataset for training
 - From project directory, run: `sbatch convert_to_tensor_dataset.sh.dev`
-- This will take a couple of hours. A folder will be created in project directory called `training dataset` and will be filled with subfloders. 
+- This will take a couple of hours. A folder will be created in project directory called `tensor_dataset` and will be filled with subfloders. 
 - Check that the sbatch is running, as it asks for 64G memory.

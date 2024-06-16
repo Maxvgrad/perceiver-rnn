@@ -60,9 +60,10 @@ class PilotNet(nn.Module):
 
 ### Perceiver
 TODO
-## Method
-### Weights and biases
-### DataLoader
+## Methods
+*General description of the methods*
+### Weights and Biases
+### Data Loader
 ## Results
 ### Preliminary experiments baseline model
 We trained the Baseline PilotNet model for 2 epochs and ran the VISTA evaluation. To put our results into perspective, we also ran the same evaluation on untrained baseline PilotNet, and also the two conditional models provided with VISTA evaluation repository - steering-2 and steering-overfit. Below are the results
