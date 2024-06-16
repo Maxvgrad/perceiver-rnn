@@ -120,12 +120,6 @@ Here we have our results compared to our initial baseline model and last year's 
 | baseline-pilotnet-2ep     | 240         | 56.96         | 3.13               |
 | Anything_3 (2023 winners) | 167         | -             | 2.718              |
 
-The programmatic model evaluation of a PilotNet trained on 2 epochs gave next results:
-```
-{'mae': 9.462068908577107, 'rmse': 29.18889959728998, 'bias': 1.67766252936753, 'max': 906.773631384108, 'whiteness': 183.16432, 'expert_whiteness': 29.571376893873957, 'left_mae': 64.44267043956717, 'straight_mae': 6.996994347305809, 'right_mae': 53.20629443278932}
-```
-Training one epoch took 4 hours on average. From the results we can see that calculated whiteness can significantly differ from the values given by VISTA simulation, so both methods should be used and results combined together, to get the best idea of model's capabilities. The PilotNet was then trained 2 epochs more to look at the progression of the training and validation loss values.
-
 
 ## Conclusion
 (GORDEI)
