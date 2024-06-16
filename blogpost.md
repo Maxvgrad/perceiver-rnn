@@ -74,6 +74,15 @@ We trained the Baseline PilotNet model for 2 epochs and ran the VISTA evaluation
 
 Considering the very low crash score of the trained models, it appears we need to tweak our evaluation procedure.
 
+### PilotNet optimiization and final results
+#### Data augmentation
+ **DESCRIBE DATA AUGMENTATION**
+#### Hyperparameter tuning
+ **DESCRIBE HYPERPARAMETER TUNING PROCESS**
+#### Final results 
+
+**PUT RESULTS FOR TUNED MODELS HERE**
+
 The programmatic model evaluation of a PilotNet trained on 2 epochs gave next results:
 ```
 {'mae': 9.462068908577107, 'rmse': 29.18889959728998, 'bias': 1.67766252936753, 'max': 906.773631384108, 'whiteness': 183.16432, 'expert_whiteness': 29.571376893873957, 'left_mae': 64.44267043956717, 'straight_mae': 6.996994347305809, 'right_mae': 53.20629443278932}

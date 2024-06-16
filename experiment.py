@@ -301,6 +301,7 @@ if __name__ == "__main__":
                 "batch_size": config.batch_size,
                 "learning_rate": config.learning_rate,
                 "weight_decay": config.weight_decay,
+                
             })
         train(config)
         if config.wandb_project:

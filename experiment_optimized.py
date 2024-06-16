@@ -322,11 +322,21 @@ if __name__ == "__main__":
     if args.mode == 'train':
         config = TrainingConfig(args)
         if config.wandb_project:
-            wandb.init(project=config.wandb_project, config={
-                "model_name": config.model_name,
-                "batch_size": config.batch_size,
-                "learning_rate": config.learning_rate,
-                "weight_decay": config.weight_decay,
+            if config.model_type == 'pilotnet':
+                wandb.init(project=config.wandb_project, config={
+                    "model_name": config.model_name,
+                    "batch_size": config.batch_size,
+                    "learning_rate": config.learning_rate,
+                    "weight_decay": config.weight_decay,
+                    "num_paths": config.num_paths,
+                })
+            if config.model_type == 'perceiver':
+                wandb.init(project=config.wandb_project, config={
+                    "model_name": config.model_name,
+                    "batch_size": config.batch_size,
+                    "learning_rate": config.learning_rate,
+                    "weight_decay": config.weight_decay,
+                    "num_paths": config.num_paths,
             })
         train(config)
         if config.wandb_project:
