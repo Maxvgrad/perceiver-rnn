@@ -150,8 +150,7 @@ class NvidiaDatasetRNNOptim(NvidiaDatasetOptim):
             full_img_tensor = torch.load(full_tensor_path)
             self.full_tensor_cache['path'] = full_tensor_path
             self.full_tensor_cache['full_img_tensor'] = full_img_tensor
-        
-        print(full_img_tensor)
+
         sequence_images = full_img_tensor[sequence_img_ids]
 
         sequence_data = {
