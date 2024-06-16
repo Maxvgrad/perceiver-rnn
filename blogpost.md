@@ -117,10 +117,10 @@ In the figure below you can observe the described effects:
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/4b3128e3-48e2-46a5-a597-bb81dabd51f4" alt="drawing" style="width:400px;"/>
 </div>
 
-It remains unclear exactly what caused these issues with the model. Some possible explanations include incorrect Perceiver configuration or lack of more sophisticated regularization methods for our purpose.
+It remains unclear exactly what caused these issues with the architecture. Some possible explanations include incorrect Perceiver configuration or lack of more sophisticated regularization methods for our purpose.
 
 
-### Final results 
+### Final PilotNet results 
 
 Here we have our results compared to our initial baseline model and last year's competition winners ([rally-estonia-challenge-2023-results][1]).
 
