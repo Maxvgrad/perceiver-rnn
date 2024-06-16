@@ -78,7 +78,20 @@ Considering the very low crash score of the trained models, it appears we need t
 
 ### PilotNet optimiization and final results
 #### Data augmentation
- **DESCRIBE DATA AUGMENTATION**
+Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Blur, Random Sharpness Adjustment, and Color Jitter were added to try and train a robust end-to-end driving models. These transformations simulated a wide array of real-world visual conditions including variable lighting, weather effects, and optical variations, which are commonly encountered during driving.
+
+- Weather Simulations (AddShadow, AddSnowdrops, AddRainStreaks): These augmentations mimic different weather conditions like shadows from overhead objects, snowfall, and rain streaks on the lens, helping the model to process and operate under diverse environmental challenges.
+
+- Optical Effects (Gaussian Blur, Random Sharpness Adjustment): These ensure the model can function reliably despite variations in image clarity due to camera focus issues or external factors affecting visibility, such as fog or motion blur.
+
+- Color Variations (Color Jitter): Adjusts image brightness, contrast, and saturation to train the model to recognize important navigational elements under various lighting conditions, essential for tasks like traffic light detection and interpreting road signs.
+
+A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset. We got the following results:
+
+|                        | crash score | avg whiteness | avg eff. whiteness |
+|------------------------|-------------|---------------|--------------------|
+| pilotnet-7ep-aug  | 171           | 49.71         | 3.21               |
+
 #### Hyperparameter tuning
  **DESCRIBE HYPERPARAMETER TUNING PROCESS**
 #### Final results 
