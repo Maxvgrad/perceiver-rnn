@@ -147,3 +147,4 @@ Our baseline model, PilotNet, showed promising results with a crash score of 1 a
 
 ![pilotnet-tune-hyperparameter-dataset-full.svg](assets%2Fimages%2Fpilotnet-tune-hyperparameter-dataset-full.svg)
 
+[1]: https://adl.cs.ut.ee/blog/rally-estonia-challenge-2023-results
