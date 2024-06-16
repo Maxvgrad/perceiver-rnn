@@ -145,7 +145,7 @@ Here we present the results two best models we obtained along with our initial b
 | baseline-pilotnet-2ep (steering)     | 240         | 56.96         | 3.13               |
 | Anything_3 (conditional, 2023 winners) | 167         | -             | 2.718              |
 
-The parameters for the models are in Appendix B.
+The parameters for the models are in Appendix B. Our models were tested by running the VISTA evaluation on the official rally competition's test dataset with `road_width = 2`.
 ## Conclusion
 
 In this project, we experimented with two model architectures: PilotNet and Perceiver.
