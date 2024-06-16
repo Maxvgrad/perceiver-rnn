@@ -91,6 +91,8 @@ Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Bl
 (GORDEI)
 #### Data augmentation
 
+![img_augments_preview](https://github.com/gorixInc/rally-challenge-24/assets/81022307/8a65bf91-77ad-42a4-92dd-3e7ce4210cb7)
+
 A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset. We got the following results:
 
 
