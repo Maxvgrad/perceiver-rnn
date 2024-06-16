@@ -250,8 +250,9 @@ def train(train_config):
         sys.exit()
 
     criterion = get_loss_function(train_config)
-    optimizer = AdamW(model.parameters(), lr=train_config.learning_rate, betas=(0.9, 0.999),
-                                  eps=1e-08, weight_decay=train_config.weight_decay, amsgrad=False)
+    # optimizer = AdamW(model.parameters(), lr=train_config.learning_rate, betas=(0.9, 0.999),
+    #                               eps=1e-08, weight_decay=train_config.weight_decay, amsgrad=False)
+    optimizer = AdamW(model.parameters(), lr=train_config.learning_rate, weight_decay=train_config.weight_decay)
 
     train_loader, valid_loader = load_data(train_config)
 
