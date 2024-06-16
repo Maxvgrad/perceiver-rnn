@@ -32,5 +32,5 @@ python experiment_optimized.py \
   --perciever_img_pre_type cnn \
   --perciever_in_channels 10 \
   --num_paths 5 \
-  --learning-rate 0.001
+  --learning-rate 0.0001
   
