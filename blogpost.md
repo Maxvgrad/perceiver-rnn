@@ -3,17 +3,17 @@
 
 **Project supervisors** Ardi Tampuu, Tambet Matiisen
 ## Introduction 
-This project is a venture into developing a model for autonomous steering for a self-driving task. The challenge for autonomous vehicle is navigating rural roads in Estonia at moderate speed (15-35 km/h), without traffic. In this project we experiment with two deep-learning architectures and report our results. We host our code in the following repository: https://github.com/gorixInc/rally-challenge-24
+This project is a venture into developing a model for autonomous steering for a self-driving task. The challenge for autonomous vehicle is navigating rural roads in Estonia at moderate speed (15-35 km/h), without traffic. In this project we apply two deep-learning architectures to this task - PilotNet and Perceiver, and report our results. We host the code in our repository: https://github.com/gorixInc/rally-challenge-24
 ## Methods
 ### Dataset and preprocessing
-The dataset contains the cropped and antialiased images from the frontal camera of the vehicle. The resolution of the images is 68x264 pixels. We split the dataset with 80% of provided driving runs going to training, and 20% are kept for validation. This means that we train on 41 runs, and validate on 11. The total number of individual frames was 1136580 for the training and 289276 images for the validation set.
+The dataset contains the cropped and antialiased images from the frontal camera of the vehicle. The resolution of the images is 68x264 pixels. We split the dataset with 80% of provided driving runs going to training, and 20% are kept for validation. This means that we train on 41 runs, and validate on 11. The total number of individual frames was 1.4 million. The only preprocessing step that is done is normalization by dividing pixel values of the images by 255. Below is an example of an image from the dataset.
 
 ![image](https://github.com/gorixInc/rally-challenge-24/assets/73139441/0760b87a-7d1b-4bcc-81a6-9ee098595d08)
 
+<!-- 
+For the baseline, we don't augment the dataset in any way.  
 
-For the baseline, we don't augment the dataset in any way. The only preprocessing step that is done is normalization by dividing pixel values of the images by 255. 
-
-The dataset was prepared using PyTorch native Dataset class extension and ingested to a model using dataloader. Together with a batch of images the steering angle and conditional mask were passed as well.
+The dataset was prepared using PyTorch native Dataset class extension and ingested to a model using dataloader. Together with a batch of images the steering angle and conditional mask were passed as well. -->
 
 
 ### Metrics
@@ -23,12 +23,12 @@ The model is first evaluated using validation set to yield two metrics
 
 For the qualitative evaluation of the model we use the VISTA simulation with the two provided traces. The three metrics we use are:
 - *Crash score*, i.e the total number of crashes for both test traces.
-- *Whiteness*.
+- *Whiteness*, which is a measure of how smooth the steering input is, lower whiteness means smoother input.
 - *Effective whiteness*. While the exact definition of this is missing, we assume that this type of whiteness metrics normalized in some way to account for the driving conditions or the specific characteristics of the road (road with lots of sharp turns vs mostly straight road for example).
 
 ### Models
 #### Baseline 
-For the baseline model we're using the PilotNet implementaiton introduced in ["End to End Learning for Self-Driving Cars"][2]. We keep the architecutre uchanged, and use the following layers:
+For the baseline model we used the PilotNet implementaiton introduced in ["End to End Learning for Self-Driving Cars"][2]. We keep the architecutre uchanged, and use the following layers:
 ```
 class PilotNet(nn.Module):
     def __init__(self) -> None:
@@ -63,9 +63,9 @@ class PilotNet(nn.Module):
 ```
 
 #### Perceiver
-We adapted the Perceiver model, introduced in the article: ["Perceiver: General Perception with Iterative Attention"][3].  We based our implementation on the [perceiver-pytorch implementation by Phil Wang][4].
+We adapted the Perceiver model, introduced in the article: ["Perceiver: General Perception with Iterative Attention"][3], basing our implementation on the [perceiver-pytorch implementation by Phil Wang][4].
 
-In our adaptation, we used a single layer of the model as and RNN cell for our time-series task. At each timestep, the image from the frontal camera of the vehicle is passed to a CNN to extract is passed features and reduce dimensionality. The resultant feature map is passed to the Perceiver along with the latent array from ${t-1}$ timestep. We use the latent array from the $t$ timestep to predict the steering angle by passing it to an MLP layer. The latent array is then passed to the next timestep. The model architecutre can be seen here: 
+In our adaptation, a single layer of the model is used as an RNN cell for our time-series task. At each timestep, the image from the frontal camera of the vehicle is passed to a CNN to extract features and reduce dimensionality. The resultant feature maps are passed to the Perceiver along with the latent array from ${t-1}$ timestep. We use the latent array from the $t$ timestep to predict the steering angle by passing it to an MLP layer. The latent array is then passed to the next timestep. The model architecutre can be seen here: 
 
 ![image](https://github.com/gorixInc/rally-challenge-24/assets/56884921/9c488065-0673-4b3b-bf0d-3a9ef4c08683)
 
@@ -87,18 +87,18 @@ The CNN consists of 2 convolutions with ReLu activation, followed by a max pool 
 
 ### Data Loader
 
-The data loader implementation for both PilotNet and Perceiver was based on the `NvidiaDataset()` class presented in the [e2e-rally-estonia repository][5]. During the loader initialization, the desired transformations and color space can be chosen. For each driven path, a pandas DataFrame is created, which contains the file paths to each frame from the camera and metadata, including steering angle, vehicle speed, turn signal data, etc. The DataFrames for each separate driven path are then concatenated into a single DataFrame, containing image paths and metadata for all frames across all paths. For PilotNet, the dataloader extracts a batch of images and corresponding steering angles.
+The data loader implementation for both PilotNet and Perceiver was based on the `NvidiaDataset()` class presented in the [e2e-rally-estonia repository][5]. During the loader initialization, the desired transformations and color space can be chosen. For each driven path, a pandas DataFrame is created, which contains the file paths to each image from the camera and metadata, including steering angle, vehicle speed, turn signal data, etc. The DataFrames for each separate driven path are then concatenated into a single DataFrame, containing image paths and metadata for all frames across all paths. For PilotNet, the dataloader extracts a batch of images and corresponding steering angles.
 
 
 <!-- The mean absolute error (MAE) was shown (https://www.mdpi.com/1424-8220/23/5/2845) to be a more suitable loss function for this task than mean squared error (MSE). Therefore, MAE was primarily used. The Adam optimizer with weight decay was employed, and to prevent overfitting, early stopping was implemented with a patience of 10 epochs without a decrease in validation loss. -->
 
 
 
-The RNN version of the dataset and data loader was based mainly on the PilotNet version, but with specific adaptations for the RNN architecture. The unshuffled frames in the form of a DataFrame were initially divided into a number of sequences of configurable length and stride between the sequences. During each iteration of the data loader, a bach of such sequences is extracted, maintaining the chronological order of the frames. 
+The RNN version of the dataset and data loader was based mainly on the PilotNet version, but with specific adaptations for the RNN architecture. The unshuffled frames in the form of a DataFrame are initially divided into a number of sequences of certain length with stride stride between the sequences. Both length and stride are configurable parameters. During each iteration of the data loader, a batch of sequences is extracted, maintaining the chronological order of the frames. 
 
 <!-- Each frame is forward-passed to the model separately, together with a latent array. The loss is then calculated for each time step in the sequence, along with a set of metrics at the end of each epoch. -->
 
-We also optimized the the dataloaders by first converting all images from a given path into a PyTorch tensor and saving them to disk. Durning training, the tensors are then loaded and cached accordingly in the DataSet instance. This allows for much faster training when using unshuffled DataLoader thanks to a reduction in storage IOPS, compared to loading each image from disk individually.
+We also optimized the the dataloaders by first converting all images from a given driven path into a PyTorch tensor and saving them to disk. Durning training, the tensors are loaded and cached accordingly in the DataSet instance. This allows for much faster training when using unshuffled DataLoader thanks to a reduction in storage IOPS, compared to loading each image from disk individually.
 
 ## Results
 ### PilotNet
@@ -121,7 +121,7 @@ Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Bl
 A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset.
 
 ### Perceiver results
-For our experiments with the Perceiver we did not use data augmentation and trained on only 4 paths from the dataset as to iterate on the model faster. The model was trained with sequences of images of length 128. For all our tests with different parameters, we observed models very quickly converging local minima with very poor performance. For fixed batch size and sequence length, all models converged to approximately the same high loss value, high prediction RMSE, and in most cases approached a 0 whiteness score, meaning the models likely predicted a constant turn angle.
+For our experiments with the Perceiver we did not use data augmentation and trained on only 4 paths from the dataset as to iterate on the model faster. The models were trained with sequences of images of length 128. For all our tests with different parameters, we observed models very quickly converging to local minima with very poor performance. For fixed batch size and sequence length, all models converged to approximately the same high loss value, high prediction RMSE, and in most cases approached a 0 whiteness score, meaning the models likely predicted a constant steering angle.
 In the figure below you can observe the described effects:
 
 <div align='left' class="image-row">
@@ -137,7 +137,7 @@ It remains unclear exactly what caused these issues with the architecture. Some 
 
 ### Final PilotNet results 
 
-Here we have our results compared to our initial baseline model and last year's competition winners ([rally-estonia-challenge-2023-results][1]). 
+Here we present the results two best models we obtained along with our initial baseline model and last year's competition winner ([rally-estonia-challenge-2023-results][1]). 
 
 |                           | crash score | avg whiteness | avg eff. whiteness |
 |---------------------------|-------------|---------------|--------------------|
