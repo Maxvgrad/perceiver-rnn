@@ -105,8 +105,7 @@ We also optimized the the dataloaders by first converting all images from a give
 
 We performed hyperparameter optimization in two stages. In the first stage, we ran optimization on a small subsample of the dataset to optimize hyperparameters such as learning rate, weight decay, batch size, and image augmentation (see results in [Appendix A](#Appendix-A)). In the second stage, we reduced the hyperparameter ranges and ran optimization on the full dataset (see results in [Appendix B](#Appendix-B)).
 
-We then selected two best-performing models on the evaluation dataset, with and without data augmentation. 
-The models were subsequently evaluated by running the VISTA evaluation on the official rally competition's test dataset.
+We then selected two best-performing models on the evaluation dataset, with and without data augmentation. The best model without augmentation was tested by running the VISTA evaluation on the official rally competition's test dataset. However, we did not obtain VISTA evaluation results for the best tuned model with augmentation due to time constraints. 
 
 #### Data augmentation
 Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Blur, Random Sharpness Adjustment, and Color Jitter were added to try and train a robust end-to-end driving models. These transformations simulated a wide array of real-world visual conditions including variable lighting, weather effects, and optical variations, which are commonly encountered during driving.
