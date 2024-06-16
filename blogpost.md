@@ -133,14 +133,15 @@ Here we have our results compared to our initial baseline model and last year's 
 
 
 ## Conclusion
-(GORDEI)
 
 
-In the initial part of our project, we detailed our steps and findings in recreating a model for autonomous steering on rural roads in Estonia. We established the dataset, baseline model, and evaluation metrics, and conducted preliminary experiments.
+### Contributions
+- Maksim Ploter: implementing training infrastructure, wandb set-up and implementation, Pilotnet tuning and evaluation
+- Gordei Pribõtkin: implementing models, implementing RNN dataloader, Perceiver evaluation, VISTA set-up
+- Filips Petuhovs: implementing dataloaders, implementing trainers, initial experiments
+- Rain Eichhorn: VISTA set-up, implementing data preprocessing, PilotNet evaluation
 
-Our baseline model, PilotNet, showed promising results with a crash score of 1 after 2 epochs of training, demonstrating significant improvement over an untrained model. Metrics such as MAE, whiteness, and effective whiteness provided insights into performance and areas for enhancement. Next steps include experimenting with additional architectures like the Perceiver model, refining evaluation procedures, and incorporating data augmentation techniques. 
-
-*Project contributions here*
+All project members contributed equally to the blogpost.
 
 ## Appendix-A
 
