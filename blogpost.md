@@ -19,7 +19,7 @@ The dataset was prepared using PyTorch native Dataset class extension and ingest
 ### Metrics
 The model is first evaluated using validation set to yield two metrics
 - *MAE* of the steering angle, ie. how different is predicted steering angle from the one used at the frame. The MAE is calculated both total and for straight, right and left marked frames separately.
-- *Whiteness* which is a measure of how smooth the steering commands are, measured commonly in degree units per second. The lower values are usually indicating smoother steering.
+- *Whiteness*, which is a measure of how smooth the steering commands are, measured commonly in degree units per second. The lower values are usually indicating smoother steering.
 
 For the qualitative evaluation of the model we use the VISTA simulation with the two provided traces. The three metrics we use are:
 - *Crash score*, i.e the total number of crashes for both test traces.
