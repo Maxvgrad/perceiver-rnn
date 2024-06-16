@@ -108,14 +108,16 @@ A PilotNet model was trained on the augmented images for 7 epochs. The model was
 ### Perceiver results
 For our experiments with the Perceiver we did not use data augmentation and trained on only 4 paths from the dataset as to iterate on the model faster. The model was trained with sequences of images of length 128. For all our tests with different parameters, we observed models very quickly converging local minima with very poor performance. For fixed batch size and sequence length, all models converged to approximately the same high loss value, high prediction RMSE, and in most cases approached a 0 whiteness score, meaning the models likely predicted a constant turn angle.
 In the Figure below
-<figure>
+
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/06f06ce5-cb91-4a57-90e8-ce18ce4c70ef" alt="drawing" style="width:400px;"/>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/300a583a-c4a8-4922-b85b-185c4a3e79e6" alt="drawing" style="width:400px;"/>
 
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/29754aee-e5cb-42d1-b689-3b0bca37e8d3" alt="drawing" style="width:400px;"/>
 <img src="https://github.com/gorixInc/rally-challenge-24/assets/56884921/4b3128e3-48e2-46a5-a597-bb81dabd51f4" alt="drawing" style="width:400px;"/>
-  <figcaption>This is the caption for the figure.</figcaption>
-</figure>
+
+<p align='center'>
+    caption
+</p>
 
 ### Final results 
 
