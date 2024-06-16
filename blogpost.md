@@ -63,7 +63,7 @@ class PilotNet(nn.Module):
 ```
 
 #### Perceiver
-We adapted the Perceiver model, introduced in the article: Perceiver: General Perception with Iterative Attention (https://arxiv.org/abs/2103.03206). We based our model code on Perceiver implementation by Phil Wang, which can be found here: https://github.com/lucidrains/perceiver-pytorch.  
+We adapted the Perceiver model, introduced in the article: ["Perceiver: General Perception with Iterative Attention"][3].  We based our implementation on the [perceiver-pytorch implementation by Phil Wang][4].
 
 In our adaptation, we used a single layer of the model as and RNN cell for our time-series task. At each timestep, the image from the frontal camera of the vehicle is passed to a CNN to extract is passed features and reduce dimensionality. The resultant feature map is passed to the Perceiver along with the latent array from ${t-1}$ timestep. We use the latent array from the $t$ timestep to predict the steering angle by passing it to an MLP layer. The latent array is then passed to the next timestep. The model architecutre can be seen here: 
 
@@ -163,3 +163,5 @@ All project members contributed equally to the blogpost.
 
 [1]: https://adl.cs.ut.ee/blog/rally-estonia-challenge-2023-results
 [2]: https://arxiv.org/abs/1604.07316
+[3]: https://arxiv.org/abs/1604.07316
+[4]: https://github.com/lucidrains/perceiver-pytorch 
