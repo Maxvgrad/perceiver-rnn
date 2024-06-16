@@ -38,6 +38,7 @@ git submodule update --recursive
     conda activate vista
     ```
     ```
+    mkdir vista_slurm
     sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces forward_trace backward_trace --traces-root ./traces/ --save-video
     ```
 ### Setting Up Training Environment
