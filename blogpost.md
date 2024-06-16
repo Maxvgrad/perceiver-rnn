@@ -105,9 +105,13 @@ Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Bl
 
 A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset.
 
-### Perceiver
-(GORDEI)
+### Perceiver results
 
+![W B Chart 6_16_2024, 9_03_24 PM](https://github.com/gorixInc/rally-challenge-24/assets/56884921/8eaaa01e-3978-43ec-ba90-2be7e4c30f86)
+
+![W B Chart 6_16_2024, 9_03_32 PM](https://github.com/gorixInc/rally-challenge-24/assets/56884921/6bbda71a-030e-4f2c-9c38-1c04fae7eb26)
+
+![W B Chart 6_16_2024, 9_03_38 PM](https://github.com/gorixInc/rally-challenge-24/assets/56884921/0c4e2874-0115-4306-bb1c-644acd6c9e13)
 
 ### Final results 
 
