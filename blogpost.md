@@ -60,8 +60,10 @@ class PilotNet(nn.Module):
 ```
 
 #### Perceiver
-TODO (GORDEI)
+We adapted the Perceiver model, introduced in the article: Perceiver: General Perception with Iterative Attention (https://arxiv.org/abs/2103.03206). We used a single layer of the model as and RNN cell for our time-series task. At each timestep, the image from the frontal camera is passed to a CNN to extract on the vehicle is passed features and reduce dimensionality. The resultant feature map is passed to the Perceiver along with the latent array from ${t-1}$ timestep. We use the latent array from the $t$ timestep to predict the steering angle by passing it to an MLP layer. The latent array is then passed to the next timestep. The model architecutre can be seen here: 
 
+
+The CNN layer consists of 2 convolutions with ReLu activation, followed by a max pool layer
 ### Data Loader
 (GORDEI & FILLIP)
 ## Results

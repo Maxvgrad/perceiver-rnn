@@ -17,3 +17,5 @@ slurm/
 sbatch__*.sh
 __pycache__/
 venv
+*.xlsx
+*.pptx
