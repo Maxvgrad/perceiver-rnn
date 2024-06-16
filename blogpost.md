@@ -65,7 +65,7 @@ We adapted the Perceiver model, introduced in the article: Perceiver: General Pe
 
 In our adaptation, we used a single layer of the model as and RNN cell for our time-series task. At each timestep, the image from the frontal camera of the vehicle is passed to a CNN to extract is passed features and reduce dimensionality. The resultant feature map is passed to the Perceiver along with the latent array from ${t-1}$ timestep. We use the latent array from the $t$ timestep to predict the steering angle by passing it to an MLP layer. The latent array is then passed to the next timestep. The model architecutre can be seen here: 
 
-![image](https://github.com/gorixInc/rally-challenge-24/assets/56884921/9dd3ed9d-98ca-430c-a8fc-dafdfc4c7123)
+![image](https://github.com/gorixInc/rally-challenge-24/assets/56884921/9c488065-0673-4b3b-bf0d-3a9ef4c08683)
 
 The CNN consists of 2 convolutions with ReLu activation, followed by a max pool layer. The MLP has two linear layers with ReLU activation and the final layer predicting the steering angle. For the Perceiver we used the following parameters:           
  - num_freq_bands = 6      
