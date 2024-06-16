@@ -171,7 +171,7 @@ class TrainingConfig:
         self.num_workers = args.num_workers
         self.weight_decay = args.weight_decay
         self.learning_rate = args.learning_rate
-        self.learning_rate_patience = args.learning_rate_patiencye
+        self.learning_rate_patience = args.learning_rate_patience
         self.wandb_project = args.wandb_project
         self.max_epochs = args.max_epochs
         self.patience = args.patience
