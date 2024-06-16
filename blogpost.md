@@ -147,9 +147,9 @@ Our baseline model, PilotNet, showed promising results with a crash score of 1 a
 |---------------|----------------------|------------------|
 | augment       | 0                    | 1                |
 | epochs        | 10                   | 7                |
-| batch_size    | 256                  | ??               |
-| learning_rate | 0.000712             | ??               |
-| weight_decay  | 0.026266             | ??               |
+| batch_size    | 256                  | 512              |
+| learning_rate | 0.000712             | 0.001            |
+| weight_decay  | 0.026266             | 0.01             |
 
 ![pilotnet-tune-hyperparameter-dataset-full.svg](assets%2Fimages%2Fpilotnet-tune-hyperparameter-dataset-full.svg)
 
