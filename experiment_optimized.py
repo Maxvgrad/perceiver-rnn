@@ -131,6 +131,22 @@ def parse_arguments():
         help="Stride between frame sequences."
     )
 
+    argparser.add_argument(
+        '--perciever_img_pre_type',
+        type=str,
+        default='None',
+        help="Perciever image preprocess model"
+    )
+
+    argparser.add_argument(
+        '--perciever_in_channels',
+        type=int,
+        default=3,
+        help="Perciever input channels"
+    )
+
+
+
     return argparser.parse_args()
 
 class TrainingConfig:
@@ -150,6 +166,8 @@ class TrainingConfig:
         self.patience = args.patience
         self.seq_length = args.seq_length
         self.stride = args.stride
+        self.perciever_img_pre_type = args.perciever_img_pre_type
+        self.perciever_in_channels = args.perciever_in_channels
         self.fps = 30
 
 
@@ -185,7 +203,7 @@ def train(train_config):
         trainer = PilotNetTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
     elif train_config.model_type == "perceiver":
         pmodel = Perceiver(
-            input_channels = 3,          # number of channels for each token of the input
+            input_channels = train_config.perciever_in_channels,          # number of channels for each token of the input
             input_axis = 2,              # number of axis for input data (2 for images, 3 for video)
             num_freq_bands = 6,          # number of freq bands, with original value (2 * K + 1)
             max_freq = 10.,              # maximum frequency, hyperparameter depending on how fine the data is
@@ -206,7 +224,7 @@ def train(train_config):
         )
         steering_classifier = MLPPredictor(512, 64)
         
-        model = PerceiverRNN(pmodel, steering_classifier)
+        model = PerceiverRNN(pmodel, steering_classifier, preprocess=train_config.perciever_img_pre_type)
         trainer = PerceiverTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
