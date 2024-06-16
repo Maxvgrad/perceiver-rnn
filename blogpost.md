@@ -12,6 +12,7 @@ For the baseline, we don't augment the dataset in any way. The only preprocessin
 
 The dataset was prepared using using PyTorch native Dataset class extension and ingested to a model using dataloader. Together with a batch of images the steering angle and conditional mask were passed as well.
 
+
 ### Metrics
 The model is first evaluated using validation set to yield two metrics
 - *MAE* of the steering angle, ie. how different is predicted steering angle from the one used at the frame. The MAE is calculated both total and for straight, right and left marked frames separately.
@@ -58,12 +59,11 @@ class PilotNet(nn.Module):
         return x
 ```
 
-### Perceiver
-TODO
-## Methods
-*General description of the methods*
-### Weights and Biases
+#### Perceiver
+TODO (GORDEI)
+
 ### Data Loader
+(GORDEI & FILLIP)
 ## Results
 ### Preliminary experiments baseline model
 We trained the Baseline PilotNet model for 2 epochs and ran the VISTA evaluation. To put our results into perspective, we also ran the same evaluation on untrained baseline PilotNet, and also the two conditional models provided with VISTA evaluation repository - steering-2 and steering-overfit. Below are the results
@@ -77,8 +77,8 @@ We trained the Baseline PilotNet model for 2 epochs and ran the VISTA evaluation
 
 Considering the very low crash score of the trained models, it appears we need to tweak our evaluation procedure.
 
-### PilotNet optimiization and final results
-#### Data augmentation
+### PilotNet results
+### Data augmentation
 Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Blur, Random Sharpness Adjustment, and Color Jitter were added to try and train a robust end-to-end driving models. These transformations simulated a wide array of real-world visual conditions including variable lighting, weather effects, and optical variations, which are commonly encountered during driving.
 
 - Weather Simulations (AddShadow, AddSnowdrops, AddRainStreaks): These augmentations mimic different weather conditions like shadows from overhead objects, snowfall, and rain streaks on the lens, helping the model to process and operate under diverse environmental challenges.
@@ -86,15 +86,18 @@ Image augmentations such as AddShadow, AddSnowdrops, AddRainStreaks, Gaussian Bl
 - Optical Effects (Gaussian Blur, Random Sharpness Adjustment): These ensure the model can function reliably despite variations in image clarity due to camera focus issues or external factors affecting visibility, such as fog or motion blur.
 
 - Color Variations (Color Jitter): Adjusts image brightness, contrast, and saturation to train the model to recognize important navigational elements under various lighting conditions, essential for tasks like traffic light detection and interpreting road signs.
+(MAKS, RAIN)
+### Perceiver results
+(GORDEI)
+#### Data augmentation
 
 A PilotNet model was trained on the augmented images for 7 epochs. The model was then evaluated by running the VISTA evaluation on the official rally competition's test dataset. We got the following results:
+
 
 |                        | crash score | avg whiteness | avg eff. whiteness |
 |------------------------|-------------|---------------|--------------------|
 | pilotnet-7ep-aug  | 171           | 49.71         | 3.21               |
 
-#### Hyperparameter tuning
- **DESCRIBE HYPERPARAMETER TUNING PROCESS**
 #### Final results 
 
 **PUT RESULTS FOR TUNED MODELS HERE**
@@ -105,10 +108,14 @@ The programmatic model evaluation of a PilotNet trained on 2 epochs gave next re
 ```
 Training one epoch took 4 hours on average. From the results we can see that calculated whiteness can significantly differ from the values given by VISTA simulation, so both methods should be used and results combined together, to get the best idea of model's capabilities. The PilotNet was then trained 2 epochs more to look at the progression of the training and validation loss values.
 
-![image](https://github.com/gorixInc/rally-challenge-24/assets/73139441/80dced38-499c-4b43-9d08-0bdc5b2a0601)
-
+### Weights and Biases and PilotNet hyperparameter tuning
+(MAKS)
 ## Conclusion
+(GORDEI)
+
 
 In the initial part of our project, we detailed our steps and findings in recreating a model for autonomous steering on rural roads in Estonia. We established the dataset, baseline model, and evaluation metrics, and conducted preliminary experiments.
 
 Our baseline model, PilotNet, showed promising results with a crash score of 1 after 2 epochs of training, demonstrating significant improvement over an untrained model. Metrics such as MAE, whiteness, and effective whiteness provided insights into performance and areas for enhancement. Next steps include experimenting with additional architectures like the Perceiver model, refining evaluation procedures, and incorporating data augmentation techniques. 
+
+*Project contributions here*
