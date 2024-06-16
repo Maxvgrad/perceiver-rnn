@@ -33,5 +33,6 @@ python experiment_optimized.py \
   --perciever_in_channels 10 \
   --num_paths 5 \
   --learning-rate 0.0001 \
-  --perceiver_latent_dim 64
+  --perceiver_latent_dim 64 \
+  --weight_decay 0.0001
   

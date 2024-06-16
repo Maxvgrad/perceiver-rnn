@@ -171,7 +171,7 @@ class TrainingConfig:
         self.num_workers = args.num_workers
         self.weight_decay = args.weight_decay
         self.learning_rate = args.learning_rate
-        self.learning_rate_patience = args.learning_rate_patience
+        self.learning_rate_patience = args.learning_rate_patiencye
         self.wandb_project = args.wandb_project
         self.max_epochs = args.max_epochs
         self.patience = args.patience
@@ -335,6 +335,7 @@ if __name__ == "__main__":
                     "learning_rate": config.learning_rate,
                     "weight_decay": config.weight_decay,
                     "num_paths": config.num_paths,
+                    "weight_decay": config.weight_decay
                 })
             if config.model_type == 'perceiver':
                 wandb.init(project=config.wandb_project, config={
@@ -343,7 +344,8 @@ if __name__ == "__main__":
                     "learning_rate": config.learning_rate,
                     "weight_decay": config.weight_decay,
                     "num_paths": config.num_paths,
-                    "latent_dim": config.perceiver_latent_dim
+                    "latent_dim": config.perceiver_latent_dim,
+                    "weight_decay": config.weight_decay
             })
         train(config)
         if config.wandb_project:
