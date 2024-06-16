@@ -30,10 +30,10 @@ class PerceiverRNN(nn.Module):
                 Rearrange('b h w c ->  b c h w'),
                 torch.nn.Conv2d(3, 10, 3),
                 torch.nn.ReLU(),
-                torch.nn.MaxPool2d(kernel_size=2),
                 torch.nn.Conv2d(10, 10, 3),
                 torch.nn.ReLU(),
                 torch.nn.MaxPool2d(kernel_size=2),
+                torch.nn.Conv2d(10, 10, 3),
                 Rearrange('b c h w -> b h w c'),
             )
         else:
