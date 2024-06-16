@@ -30,5 +30,6 @@ python experiment_optimized.py \
   --seq-length 128 \
   --stride 100 \
   --perciever_img_pre_type cnn \
-  --perciever_in_channels 10
+  --perciever_in_channels 10 \
+  --num_paths 18
   

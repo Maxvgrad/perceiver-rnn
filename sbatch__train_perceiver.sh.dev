@@ -28,5 +28,6 @@ python experiment_optimized.py \
   --learning-rate-patience 2 \
   --batch-size 1 \
   --seq-length 128 \
-  --stride 100
+  --stride 100 \
+  --num_paths 18
   

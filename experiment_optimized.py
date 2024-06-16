@@ -145,6 +145,12 @@ def parse_arguments():
         help="Perciever input channels"
     )
 
+    argparser.add_argument(
+        '--num_paths',
+        type=int,
+        default=52,
+        help="Number of paths to use for training"
+    )
 
 
     return argparser.parse_args()
@@ -168,6 +174,7 @@ class TrainingConfig:
         self.stride = args.stride
         self.perciever_img_pre_type = args.perciever_img_pre_type
         self.perciever_in_channels = args.perciever_in_channels
+        self.num_paths = args.num_paths
         self.fps = 30
 
 
@@ -257,6 +264,7 @@ def load_data(train_config):
     random.seed(train_config.seed)
     data_dirs = os.listdir(dataset_path)
     random.shuffle(data_dirs)
+    data_dirs = data_dirs[:train_config.num_paths + 1]
     split_index = int(0.8 * len(data_dirs))
     train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
     valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
