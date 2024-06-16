@@ -11,7 +11,7 @@ from models.perciever import Perceiver
 from models.perciever_rnn import MLPPredictor, PerceiverRNN
 from train.trainer import PerceiverTrainer, PilotNetTrainer
 from torch.nn import MSELoss, L1Loss
-from torch.optim import AdamW
+from torch.optim import AdamW, Adam
 from torch.utils.data import DataLoader
 from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
 from data_prep.dataloader_optimized import NvidiaDatasetOptim, NvidiaDatasetRNNOptim
@@ -252,7 +252,7 @@ def train(train_config):
     criterion = get_loss_function(train_config)
     # optimizer = AdamW(model.parameters(), lr=train_config.learning_rate, betas=(0.9, 0.999),
     #                               eps=1e-08, weight_decay=train_config.weight_decay, amsgrad=False)
-    optimizer = AdamW(model.parameters(), lr=train_config.learning_rate, weight_decay=train_config.weight_decay)
+    optimizer = Adam(model.parameters(), lr=train_config.learning_rate, weight_decay=train_config.weight_decay)
 
     train_loader, valid_loader = load_data(train_config)
 
