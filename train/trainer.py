@@ -271,6 +271,7 @@ class PerceiverTrainer(Trainer):
             progress_bar.set_description("Model predictions")
             for i, (data, target_values, condition_mask) in enumerate(dataloader):
                 inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device)
+
                 
                 latents = None
                 sequence_predictions = []
@@ -304,6 +305,7 @@ class PerceiverTrainer(Trainer):
 
             # Calculate loss for the current time step
             loss = criterion(predictions.squeeze(), target_frame)
+
             total_loss += loss
             
         return torch.stack(sequence_predictions), total_loss
