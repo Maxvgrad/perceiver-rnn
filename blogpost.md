@@ -6,7 +6,8 @@ This project is a venture into developing a model for autonomous steering for a 
 ### Dataset and preprocessing
 The dataset contains the cropped and antialiased images from the frontal camera of the vehicle. The resolution of the images is 68x264 pixels. We split the dataset with 80% of provided driving runs going to training, and 20% are kept for validation. This means that we train on 41 runs, and validate on 11. The total number of individual frames was 1136580 for the training and 289276 images for the validation set.
 
-![image](https://github.com/gorixInc/rally-challenge-24/assets/73139441/0760b87a-7d1b-4bcc-81a6-9ee098595d08)
+![image](https://github.com/gorixInc/rally-challenge-24/assets/56884921/0d99f1c9-6f46-4980-87a5-34e0ab5d341b)
+
 
 For the baseline, we don't augment the dataset in any way. The only preprocessing step that is done is normalization by dividing pixel values of the images by 255. 
 
