@@ -35,5 +35,6 @@ python experiment_optimized.py \
   --learning-rate 0.0001 \
   --perceiver_latent_dim 64 \
   --weight-decay 0.0001 \
-  --perceiver-dropout 0.4
+  --perceiver-dropout 0.4 \
+  --loss mse
   

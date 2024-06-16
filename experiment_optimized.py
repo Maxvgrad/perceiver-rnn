@@ -341,7 +341,8 @@ if __name__ == "__main__":
                     "learning_rate": config.learning_rate,
                     "weight_decay": config.weight_decay,
                     "num_paths": config.num_paths,
-                    "weight_decay": config.weight_decay
+                    "weight_decay": config.weight_decay,
+                    'loss': config.loss,
                 })
             if config.model_type == 'perceiver':
                 wandb.init(project=config.wandb_project, config={
@@ -353,6 +354,7 @@ if __name__ == "__main__":
                     "latent_dim": config.perceiver_latent_dim,
                     "weight_decay": config.weight_decay,
                     'dropout': config.perceiver_dropout,
+                    'loss': config.loss,
             })
         train(config)
         if config.wandb_project:
