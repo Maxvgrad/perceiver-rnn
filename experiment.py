@@ -14,7 +14,6 @@ from torch.nn import MSELoss, L1Loss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
-from data_prep.dataloader_optimized import NvidiaDatasetOptim, NvidiaDatasetRNNOptim
 
 
 def parse_arguments():

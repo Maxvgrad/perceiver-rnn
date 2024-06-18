@@ -13,7 +13,6 @@ from train.trainer import PerceiverTrainer, PilotNetTrainer
 from torch.nn import MSELoss, L1Loss
 from torch.optim import AdamW, Adam
 from torch.utils.data import DataLoader
-from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
 from data_prep.dataloader_optimized import NvidiaDatasetOptim, NvidiaDatasetRNNOptim
 
 

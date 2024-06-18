@@ -13,6 +13,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
 
 from metrics.metrics import calculate_open_loop_metrics
+from utils.model_utils import count_parameters, count_all_parameters
 
 
 class Trainer:
@@ -60,6 +61,11 @@ class Trainer:
         epochs_of_no_improve = 0
 
         scheduler = ReduceLROnPlateau(optimizer, 'min', patience=lr_patience, factor=0.1, verbose=True)
+
+        num_params = count_parameters(model)
+        num_params_all = count_all_parameters(model)
+
+        logging.info("Model: %s number of all parameters: %s, trainable parameters: %s", model_type, num_params_all, num_params)
 
         for epoch in range(n_epoch):
 
