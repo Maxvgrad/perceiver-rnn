@@ -188,10 +188,10 @@ def train(train_config):
             num_latents = 256,           # number of latents, or induced set points, or centroids. different papers giving it different names
             latent_dim = 512,            # latent dimension
             cross_heads = 1,             # number of heads for cross attention. paper said 1
-            latent_heads = 8,            # number of heads for latent self attention, 8
+            latent_heads = 4,            # number of heads for latent self attention, 8
             cross_dim_head = 64,         # number of dimensions per cross attention head
             latent_dim_head = 64,        # number of dimensions per latent self attention head
-            num_classes = 1,          # output numb"er of classes
+            num_classes = 1,             # output number of classes
             attn_dropout = 0.,
             ff_dropout = 0.,
             weight_tie_layers = False,   # whether to weight tie layers (optional, as indicated in the diagram)
@@ -234,14 +234,11 @@ def load_data(train_config):
     data_dirs = os.listdir(dataset_path)
     random.shuffle(data_dirs)
     split_index = int(0.8 * len(data_dirs))
-    train_paths = [dataset_path / dir_name for dir_name in data_dirs[:3]]
-    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[3:4]]
+    train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
+    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
 
     if train_config.model_type == "pilotnet":
-        split_index = int(0.8 * len(data_dirs))
-        train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
-        valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
-        train_dataset = NvidiaDataset(train_paths, transform=train_config.augment)
+        train_dataset = NvidiaDataset(train_paths)
         valid_dataset = NvidiaDataset(valid_paths)
     elif train_config.model_type == "perceiver":
         train_dataset = NvidiaDatasetRNN(train_paths, train_config.seq_length, train_config.stride)
@@ -250,7 +247,7 @@ def load_data(train_config):
         logging.error("Unknown model type: %s", train_config.model_type)
         sys.exit()
 
-    train_loader = DataLoader(train_dataset, batch_size=train_config.batch_size, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=train_config.batch_size, shuffle=False,
                               num_workers=train_config.num_workers, pin_memory=True,
                               persistent_workers=True, collate_fn=train_dataset.collate_fn)
 
@@ -315,6 +312,7 @@ if __name__ == "__main__":
                 "batch_size": config.batch_size,
                 "learning_rate": config.learning_rate,
                 "weight_decay": config.weight_decay,
+                
             })
         train(config)
         if config.wandb_project:

@@ -13,6 +13,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
 
 from metrics.metrics import calculate_open_loop_metrics
+from utils.model_utils import count_parameters, count_all_parameters
 
 
 class Trainer:
@@ -60,6 +61,11 @@ class Trainer:
         epochs_of_no_improve = 0
 
         scheduler = ReduceLROnPlateau(optimizer, 'min', patience=lr_patience, factor=0.1, verbose=True)
+
+        num_params = count_parameters(model)
+        num_params_all = count_all_parameters(model)
+
+        logging.info("Model: %s number of all parameters: %s, trainable parameters: %s", model_type, num_params_all, num_params)
 
         for epoch in range(n_epoch):
 
@@ -271,6 +277,7 @@ class PerceiverTrainer(Trainer):
             progress_bar.set_description("Model predictions")
             for i, (data, target_values, condition_mask) in enumerate(dataloader):
                 inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device)
+
                 
                 latents = None
                 sequence_predictions = []
@@ -287,6 +294,7 @@ class PerceiverTrainer(Trainer):
         return np.concatenate(all_predictions, axis=1)
 
     def train_batch(self, model, data, target_values, condition_mask, criterion):
+        model.train()
         inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device) # (T, B, H, W, C)
         target_values = rearrange(target_values, 'b t -> t b').to(self.device) # (T, B)
         
@@ -303,6 +311,7 @@ class PerceiverTrainer(Trainer):
 
             # Calculate loss for the current time step
             loss = criterion(predictions.squeeze(), target_frame)
+
             total_loss += loss
             
         return torch.stack(sequence_predictions), total_loss

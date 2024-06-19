@@ -87,7 +87,7 @@ class NvidiaDataset(Dataset):
         frames_df = frames_df[frames_df['vehicle_speed'].notna()]
         frames_df = frames_df[frames_df[f'{camera}_filename'].notna()]
 
-        frames_df["turn_signal"].fillna(1, inplace=True)
+        frames_df.fillna({'turn_signal': 1}, inplace=True)
         frames_df["turn_signal"] = frames_df["turn_signal"].astype(int)
 
         # Removed frames marked as skipped
@@ -113,6 +113,7 @@ class NvidiaDatasetRNN(NvidiaDataset):
         super().__init__(dataset_paths, transform, camera, name,
                           filter_turns, metadata_file, color_space, dataset_proportion)
         self.sequence_ids = self.create_sequence_indices(seq_length, seq_stride)
+        
         self.target_size = seq_length
 
     def collate_fn(self, batch):
@@ -130,6 +131,7 @@ class NvidiaDatasetRNN(NvidiaDataset):
                 start = i * stride
                 sequence_ids.append(np.array(path_df.index)[start:start+sequence_length])
         return sequence_ids
+    
 
     def __getitem__(self, idx):
         sequence_ids = self.sequence_ids[idx]
