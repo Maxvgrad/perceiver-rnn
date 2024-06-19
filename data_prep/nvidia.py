@@ -6,7 +6,7 @@ import torchvision
 import torch
 import sys
 from torch.utils.data._utils.collate import default_collate
-from custom_transforms import ImageTransform, Normalize
+from data_prep.custom_transforms import ImageTransform, Normalize
 
 class NvidiaDataset(Dataset):
 
