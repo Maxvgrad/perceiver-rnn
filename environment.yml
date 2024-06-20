@@ -1,0 +1,17 @@
+name: rally_challenge_env
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy==1.24.4
+  - onnx==1.16.0
+  - onnxruntime==1.16.0
+  - conda-forge::opencv=4.10.0
+  - conda-forge::pandas=2.2.2
+  - pillow=10.3.0
+  - pytorch::pytorch
+  - torchaudio
+  - torchvision
+  - tqdm=4.66.4
+  - einops=0.8.0
+  - wandb=0.16.5
