@@ -19,9 +19,9 @@ class MLPPredictor(nn.Module):
         return self.linear_stack(x)
 
 class PerceiverRNN(nn.Module):
-    def __init__(self, perciever, classifier_head, preprocess='None'):
+    def __init__(self, perceiver, classifier_head, preprocess='None'):
         super().__init__()
-        self.perciever = perciever
+        self.perceiver = perceiver
         if preprocess=='dino':
             dinov2_vits14 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
             self.image_preprocess = dinov2_vits14
@@ -43,7 +43,7 @@ class PerceiverRNN(nn.Module):
         # batch (B, H, W, C)
         # latents (B, num_latents, latent_dim)
         preprocessed = self.image_preprocess(batch)
-        latents = self.perciever.forward(preprocessed, latents=latents, return_embeddings=True)
+        latents = self.perceiver.forward(preprocessed, latents=latents, return_embeddings=True)
         steering = self.classifier_head.forward(latents)
         return steering, latents
 

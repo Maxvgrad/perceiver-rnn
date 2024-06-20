@@ -44,7 +44,7 @@ def parse_arguments():
         '--loss',
         required=False,
         choices=['mse', 'mae'],
-        default='mae',
+        default='mse',
         help='Loss function used for training.'
     )
 
@@ -65,6 +65,13 @@ def parse_arguments():
         '--wandb-project',
         required=False,
         help='W&B project name to use for metrics. Wandb logging is disabled when no project name is provided.'
+    )
+
+    argparser.add_argument(
+        '--wandb-sweep-name',
+        required=False,
+        default='sweep-demo',
+        help='W&B sweep name.'
     )
 
     argparser.add_argument(
@@ -99,7 +106,7 @@ def parse_arguments():
         '--learning-rate-patience',
         type=int,
         default=10,
-        help="Num of epochs after with learning rate will be retuced by factor of 0.1."
+        help="Num of epochs after with learning rate will be reduced by factor of 0.1."
     )
 
     argparser.add_argument(
@@ -124,17 +131,48 @@ def parse_arguments():
     )
 
     argparser.add_argument(
-        '--seq-length',
+        '--dataset-proportion',
+        type=float,
+        default=1.0,
+        help="Dataset proportion taken."
+    )
+
+    argparser.add_argument(
+        '--perceiver-seq-length',
         type=int,
         default=8,
         help="Number of frames in one RNN sequence."
     )
 
     argparser.add_argument(
-        '--stride',
+        '--perceiver-stride',
         type=int,
         default=4,
         help="Stride between frame sequences."
+    )
+
+    argparser.add_argument(
+        '--perceiver-img-pre-type',
+        type=str,
+        default='cnn',
+        help="Perceiver image preprocess model"
+    )
+
+    argparser.add_argument(
+        '--perceiver-in-channels',
+        type=int,
+        default=3,
+        help="Perceiver input channels"
+    )
+    argparser.add_argument(
+        '--perceiver-latent-dim',
+        type=int,
+        default=512,
+    )
+    argparser.add_argument(
+        '--perceiver-dropout',
+        type=float,
+        default=0,
     )
 
     return argparser.parse_args()
@@ -155,21 +193,60 @@ class TrainingConfig:
         self.wandb_project = args.wandb_project
         self.max_epochs = args.max_epochs
         self.patience = args.patience
-        self.seq_length = args.seq_length
-        self.stride = args.stride
         self.augment = bool(args.augment)
+        self.dataset_proportion = args.dataset_proportion
         self.fps = 30
+
+        self.perceiver_seq_length = args.perceiver_seq_length
+        self.perceiver_stride = args.perceiver_stride
+        self.perceiver_img_pre_type = args.perceiver_img_pre_type
+        self.perceiver_in_channels = args.perceiver_in_channels
+        self.perceiver_latent_dim = args.perceiver_latent_dim
+        self.perceiver_dropout = args.perceiver_dropout
+
+    def as_dict(self):
+        return {
+            'model_type': self.model_type,
+            'model_name': self.model_name,
+            'loss': self.loss,
+            'dataset_folder': self.dataset_folder,
+            'seed': self.seed,
+            'batch_size': self.batch_size,
+            'num_workers': self.num_workers,
+            'weight_decay': self.weight_decay,
+            'learning_rate': self.learning_rate,
+            'learning_rate_patience': self.learning_rate_patience,
+            'wandb_project': self.wandb_project,
+            'max_epochs': self.max_epochs,
+            'patience': self.patience,
+            'augment': self.augment,
+            'dataset_proportion': self.dataset_proportion,
+            'fps': self.fps,
+            'perceiver_seq_length': self.perceiver_seq_length,
+            'perceiver_stride': self.perceiver_stride,
+            'perceiver_img_pre_type': self.perceiver_img_pre_type,
+            'perceiver_in_channels': self.perceiver_in_channels,
+            'perceiver_latent_dim': self.perceiver_latent_dim,
+            'perceiver_dropout': self.perceiver_dropout
+        }
 
 
 class TuneHyperparametersConfig(TrainingConfig):
     def __init__(self, args):
         super().__init__(args)
+        self.wandb_sweep_name = args.wandb_sweep_name
 
     def update(self, config):
         self.learning_rate = config.learning_rate
         self.batch_size = config.batch_size
         self.weight_decay = config.weight_decay
         self.augment = bool(config.augment)
+
+        self.perceiver_seq_length = config.perceiver_seq_length
+        self.perceiver_stride = config.perceiver_stride
+        self.perceiver_in_channels = config.perceiver_in_channels
+        self.perceiver_latent_dim = config.perceiver_latent_dim
+        self.perceiver_dropout = config.perceiver_dropout
 
 
 def train(train_config):
@@ -179,28 +256,28 @@ def train(train_config):
         trainer = PilotNetTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
     elif train_config.model_type == "perceiver":
         pmodel = Perceiver(
-            input_channels = 3,          # number of channels for each token of the input
+            input_channels = train_config.perceiver_in_channels,          # number of channels for each token of the input
             input_axis = 2,              # number of axis for input data (2 for images, 3 for video)
             num_freq_bands = 6,          # number of freq bands, with original value (2 * K + 1)
             max_freq = 10.,              # maximum frequency, hyperparameter depending on how fine the data is
             depth = 1,                   # depth of net. The shape of the final attention mechanism will be:
                                          #   depth * (cross attention -> self_per_cross_attn * self attention)
             num_latents = 256,           # number of latents, or induced set points, or centroids. different papers giving it different names
-            latent_dim = 512,            # latent dimension
+            latent_dim = train_config.perceiver_latent_dim,            # latent dimension
             cross_heads = 1,             # number of heads for cross attention. paper said 1
             latent_heads = 4,            # number of heads for latent self attention, 8
             cross_dim_head = 64,         # number of dimensions per cross attention head
             latent_dim_head = 64,        # number of dimensions per latent self attention head
             num_classes = 1,             # output number of classes
-            attn_dropout = 0.,
-            ff_dropout = 0.,
+            attn_dropout = train_config.perceiver_dropout,
+            ff_dropout = train_config.perceiver_dropout,
             weight_tie_layers = False,   # whether to weight tie layers (optional, as indicated in the diagram)
             fourier_encode_data = True,  # whether to auto-fourier encode the data, using the input_axis given. defaults to True, but can be turned off if you are fourier encoding the data yourself
             self_per_cross_attn = 2      # number of self attention blocks per cross attention
         )
-        steering_classifier = MLPPredictor(512, 64)
+        steering_classifier = MLPPredictor(train_config.perceiver_latent_dim, 64)
 
-        model = PerceiverRNN(pmodel, steering_classifier)
+        model = PerceiverRNN(pmodel, steering_classifier, preprocess=train_config.perceiver_img_pre_type)
         trainer = PerceiverTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
@@ -238,11 +315,15 @@ def load_data(train_config):
     valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
 
     if train_config.model_type == "pilotnet":
-        train_dataset = NvidiaDataset(train_paths)
-        valid_dataset = NvidiaDataset(valid_paths)
+        train_dataset = NvidiaDataset(train_paths, dataset_proportion=train_config.dataset_proportion)
+        valid_dataset = NvidiaDataset(valid_paths, dataset_proportion=train_config.dataset_proportion)
     elif train_config.model_type == "perceiver":
-        train_dataset = NvidiaDatasetRNN(train_paths, train_config.seq_length, train_config.stride)
-        valid_dataset = NvidiaDatasetRNN(valid_paths, train_config.seq_length, train_config.stride)
+        train_dataset = NvidiaDatasetRNN(
+            train_paths, train_config.perceiver_seq_length, train_config.perceiver_stride,
+            dataset_proportion=train_config.dataset_proportion)
+        valid_dataset = NvidiaDatasetRNN(
+            valid_paths, train_config.perceiver_seq_length, train_config.perceiver_stride,
+            dataset_proportion=train_config.dataset_proportion)
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
         sys.exit()
@@ -261,21 +342,23 @@ def load_data(train_config):
 def tune_hyperparameters(tune_hyperparameters_config):
     sweep_configuration = {
         'method': 'bayes',
-        'name': 'sweep-demo',
+        'name': tune_hyperparameters_config.wandb_sweep_name,
         'metric': {'goal': 'minimize', 'name': 'valid_loss'},
         'parameters': {
             'learning_rate': {
                 'distribution': 'uniform',
                 'min': 1e-4,
-                'max': 1e-3,
+                'max': 1e-2,
             },
             'weight_decay': {
                 'distribution': 'uniform',
-                'min': 5e-3,
-                'max': 5e-2,
+                'min': 1e-3,
+                'max': 1e-2,
             },
-            'batch_size': {'values': [256, 512]},
-            'augment': {'values': [0, 1]},
+            'perceiver_seq_length': {'values': [32, 64, 128, 256, 512]},
+            'perceiver_stride': {'values': [32, 64, 128, 256, 512]},
+            'perceiver_in_channels': {'values': [1, 3]},
+            'perceiver_latent_dim': {'values': [64, 128, 256, 512]},
         },
         'early_terminate': {
             'type': 'hyperband',
@@ -307,13 +390,7 @@ if __name__ == "__main__":
     if args.mode == 'train':
         config = TrainingConfig(args)
         if config.wandb_project:
-            wandb.init(project=config.wandb_project, config={
-                "model_name": config.model_name,
-                "batch_size": config.batch_size,
-                "learning_rate": config.learning_rate,
-                "weight_decay": config.weight_decay,
-                
-            })
+            wandb.init(project=config.wandb_project, config=config.as_dict())
         train(config)
         if config.wandb_project:
             logging.info(f'Finishing wandb.')
