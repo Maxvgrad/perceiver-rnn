@@ -3,16 +3,19 @@ import sys
 from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
-from einops import rearrange
+
 import numpy as np
 import onnx
 import torch
-from torch.nn import functional as F
 import wandb
+from einops import rearrange
+from pytorchvideo.data import LabeledVideoDataset
+from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
 
 from metrics.metrics import calculate_open_loop_metrics
+from models.model_type import ModelType
 from utils.model_utils import count_parameters, count_all_parameters
 
 
@@ -46,15 +49,14 @@ class Trainer:
         model = model.to(self.device)
         criterion = criterion.to(self.device)
 
-        if self.wandb_logging:
+        if model_type == ModelType.PILOTNET:
             # When using LazyModules Call `forward` with a dummy batch to initialize the parameters
             # before calling torch functions
             data, _, _ = next(iter(train_loader))
-            if model_type == 'perceiver':
-                inputs = rearrange(data['image'], 'b t c h w -> t b h w c')[0].to(self.device)
-            else:
-                inputs = data['image'].to(self.device)
+            inputs = data['image'].to(self.device)
             model(inputs)
+
+        if self.wandb_logging:
             wandb.watch(model, criterion)
 
         best_valid_loss = float('inf')
@@ -69,10 +71,10 @@ class Trainer:
 
         for epoch in range(n_epoch):
 
-            progress_bar = tqdm(total=len(train_loader), smoothing=0)
+            progress_bar = tqdm(total=self.dataset_len(train_loader), smoothing=0)
             train_loss = self.train_epoch(model, train_loader, optimizer, criterion, progress_bar, epoch)
 
-            progress_bar.reset(total=len(valid_loader))
+            progress_bar.reset(total=self.dataset_len(valid_loader))
             valid_loss, predictions = self.evaluate(model, valid_loader, criterion, progress_bar, epoch, train_loss)
 
             scheduler.step(valid_loss)
@@ -212,7 +214,7 @@ class Trainer:
             progress_bar.update(1)
             progress_bar.set_description(f'epoch {epoch+1} | train loss: {(running_loss / (i + 1)):.4f}')
 
-        return running_loss / len(loader)
+        return running_loss / self.dataset_len(loader) # TODO: count size
 
 
     @abstractmethod
@@ -222,6 +224,15 @@ class Trainer:
     @abstractmethod
     def predict(self, model, dataloader):
         pass
+
+    def dataset_len(self, dataloader):
+        if hasattr(dataloader.dataset, '__len__'):
+            return len(dataloader)
+        elif isinstance(dataloader.dataset, LabeledVideoDataset):
+            return dataloader.dataset.num_videos
+        else:
+            logging.error(f"Unsupported dataloader length: {dataloader.dataset}")
+            sys.exit()
 
     def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
         epoch_loss = 0.0

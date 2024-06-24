@@ -1,19 +1,23 @@
 import argparse
-import sys
 import logging
-import random
 import os
-import wandb
-
+import random
+import sys
 from pathlib import Path
-from models.pilotnet import PilotNet
-from models.perciever import Perceiver
-from models.perciever_rnn import MLPPredictor, PerceiverRNN
-from train.trainer import PerceiverTrainer, PilotNetTrainer
+
+from pytorchvideo.data import make_clip_sampler
 from torch.nn import MSELoss, L1Loss
 from torch.optim import AdamW
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SequentialSampler
+
+import wandb
 from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
+from datasets.ucf11 import Ucf11
+from models.model_type import ModelType
+from models.perciever import Perceiver
+from models.perciever_rnn import MLPPredictor, PerceiverRNN
+from models.pilotnet import PilotNet
+from train.trainer import PerceiverTrainer, PilotNetTrainer
 
 
 def parse_arguments():
@@ -181,7 +185,7 @@ def parse_arguments():
 
 class TrainingConfig:
     def __init__(self, args):
-        self.model_type = args.model_type
+        self.model_type = ModelType[args.model_type.upper()]
         self.model_name = args.model_name
         self.loss = args.loss
         self.dataset_folder = args.dataset_folder
@@ -252,10 +256,10 @@ class TuneHyperparametersConfig(TrainingConfig):
 
 def train(train_config):
 
-    if train_config.model_type == "pilotnet":
+    if train_config.model_type == ModelType.PILOTNET:
         model = PilotNet()
         trainer = PilotNetTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
-    elif train_config.model_type == "perceiver":
+    elif train_config.model_type == ModelType.PERCEIVER:
         pmodel = Perceiver(
             input_channels = train_config.perceiver_in_channels,          # number of channels for each token of the input
             input_axis = 2,              # number of axis for input data (2 for images, 3 for video)
@@ -307,35 +311,50 @@ def get_loss_function(train_config):
 def load_data(train_config):
     logging.info("Reading from: %s", train_config.dataset_folder)
 
-    dataset_path = Path(train_config.dataset_folder)
-    random.seed(train_config.seed)
-    data_dirs = os.listdir(dataset_path)
-    random.shuffle(data_dirs)
-    split_index = int(0.8 * len(data_dirs))
-    train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
-    valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
+    if 'ucf11' in train_config.dataset_folder.lower():
+        logging.info("Dataset type: UCF11.")
+        clip_duration = 100 #(sampling_rate * num_frames) / frames_per_second
+        train_dataset, valid_dataset = Ucf11(
+            clip_sampler=make_clip_sampler('random', clip_duration),
+            video_sampler=SequentialSampler,
+            data_path=train_config.dataset_folder
+        )
 
-    if train_config.model_type == "pilotnet":
-        train_dataset = NvidiaDataset(train_paths, dataset_proportion=train_config.dataset_proportion)
-        valid_dataset = NvidiaDataset(valid_paths, dataset_proportion=train_config.dataset_proportion)
-    elif train_config.model_type == "perceiver":
-        train_dataset = NvidiaDatasetRNN(
-            train_paths, train_config.perceiver_seq_length, train_config.perceiver_stride,
-            dataset_proportion=train_config.dataset_proportion)
-        valid_dataset = NvidiaDatasetRNN(
-            valid_paths, train_config.perceiver_seq_length, train_config.perceiver_stride,
-            dataset_proportion=train_config.dataset_proportion)
+        collate_fn = None
     else:
-        logging.error("Unknown model type: %s", train_config.model_type)
-        sys.exit()
+        logging.info("Dataset type: RallyEstonia.")
+
+        dataset_path = Path(train_config.dataset_folder)
+        random.seed(train_config.seed)
+        data_dirs = os.listdir(dataset_path)
+        random.shuffle(data_dirs)
+        split_index = int(0.8 * len(data_dirs))
+        train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
+        valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
+
+        if train_config.model_type == "pilotnet":
+            train_dataset = NvidiaDataset(train_paths, dataset_proportion=train_config.dataset_proportion)
+            valid_dataset = NvidiaDataset(valid_paths, dataset_proportion=train_config.dataset_proportion)
+        elif train_config.model_type == "perceiver":
+            train_dataset = NvidiaDatasetRNN(
+                train_paths, train_config.perceiver_seq_length, train_config.perceiver_stride,
+                dataset_proportion=train_config.dataset_proportion)
+            valid_dataset = NvidiaDatasetRNN(
+                valid_paths, train_config.perceiver_seq_length, train_config.perceiver_stride,
+                dataset_proportion=train_config.dataset_proportion)
+        else:
+            logging.error("Unknown model type: %s", train_config.model_type)
+            sys.exit()
+
+        collate_fn = train_dataset.collate_fn
 
     train_loader = DataLoader(train_dataset, batch_size=train_config.batch_size, shuffle=False,
                               num_workers=train_config.num_workers, pin_memory=True,
-                              persistent_workers=True, collate_fn=train_dataset.collate_fn)
+                              persistent_workers=True, collate_fn=collate_fn)
 
     valid_loader = DataLoader(valid_dataset, batch_size=train_config.batch_size, shuffle=False,
                               num_workers=train_config.num_workers, pin_memory=True,
-                              persistent_workers=False, collate_fn=train_dataset.collate_fn)
+                              persistent_workers=False, collate_fn=collate_fn)
 
     return train_loader, valid_loader
 
