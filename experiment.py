@@ -5,7 +5,10 @@ import random
 import sys
 from pathlib import Path
 
+import torchvision
 from pytorchvideo.data import make_clip_sampler
+from pytorchvideo.transforms import ApplyTransformToKey, ShortSideScale, UniformTemporalSubsample, UniformCropVideo, \
+    Normalize
 from torch.nn import MSELoss, L1Loss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader, SequentialSampler
@@ -325,7 +328,19 @@ def load_data(train_config):
         train_dataset, valid_dataset = Ucf11(
             clip_sampler=make_clip_sampler('uniform', train_config.clip_duration),
             video_sampler=SequentialSampler,
-            data_path=train_config.dataset_folder
+            data_path=train_config.dataset_folder,
+            transform=torchvision.transforms.Compose(
+                [
+                    ApplyTransformToKey(
+                        key="video",
+                        transform=torchvision.transforms.Compose([
+                            ShortSideScale(size=224),
+                            UniformTemporalSubsample(num_samples=int(60 * train_config.clip_duration)),
+                            Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+                        ])),
+                    UniformCropVideo(size=224),
+                ]
+            )
         )
 
         collate_fn = None
