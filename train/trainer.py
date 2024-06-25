@@ -166,7 +166,7 @@ class Trainer:
 
     def save_onnx(self, model, valid_loader):
         model.load_state_dict(torch.load(f"{self.save_dir}/best.pt"))
-        model.to(self.device)
+        model = model.to(self.device)
 
         #data = iter(valid_loader).next()
         #Update to fix an issue of deprecated code.
@@ -185,7 +185,7 @@ class Trainer:
             wandb.save(f"{self.save_dir}/best.onnx")
 
         model.load_state_dict(torch.load(f"{self.save_dir}/last.pt"))
-        model.to(self.device)
+        model = model.to(self.device)
 
         torch.onnx.export(model, sample_inputs, f"{self.save_dir}/last.onnx")
         onnx.checker.check_model(f"{self.save_dir}/last.onnx")
@@ -311,8 +311,8 @@ class PerceiverTrainer(Trainer):
     def train_batch(self, model, criterion, loader_data):
         model.train()
         inputs, target_values = self.prepare_dataloader_data_fn(loader_data)
-        inputs.to(self.device)
-        target_values.to(self.device)
+        inputs = inputs.to(self.device)
+        target_values = target_values.to(self.device)
         latents = None
         sequence_predictions = []
         total_loss = 0.0
