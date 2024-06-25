@@ -10,7 +10,6 @@ import torch
 import wandb
 from einops import rearrange
 from pytorchvideo.data import LabeledVideoDataset
-from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
 
@@ -201,10 +200,10 @@ class Trainer:
 
         model.train()
 
-        for i, (data, target_values, condition_mask) in enumerate(loader):
+        for i, loader_data in enumerate(loader):
             optimizer.zero_grad()
 
-            predictions, loss = self.train_batch(model, data, target_values, condition_mask, criterion)
+            predictions, loss = self.train_batch(model, criterion, loader_data)
 
             loss.backward()
             optimizer.step()
@@ -218,7 +217,7 @@ class Trainer:
 
 
     @abstractmethod
-    def train_batch(self, model, data, target_values, condition_mask, criterion):
+    def train_batch(self, model, criterion, loader_data):
         pass
 
     @abstractmethod
@@ -241,7 +240,7 @@ class Trainer:
 
         with torch.no_grad():
             for i, (data, target_values, condition_mask) in enumerate(iterator):
-                predictions, loss = self.train_batch(model, data, target_values, condition_mask, criterion)
+                predictions, loss = self.train_batch(model, criterion, (data, target_values, condition_mask))
                 epoch_loss += loss.item()
                 all_predictions.extend(predictions.cpu().squeeze().numpy())
 
@@ -270,7 +269,8 @@ class PilotNetTrainer(Trainer):
 
         return np.array(all_predictions)
 
-    def train_batch(self, model, data, target_values, condition_mask, criterion):
+    def train_batch(self, model, criterion, loader_data):
+        data, target_values, condition_mask = loader_data
         inputs = data['image'].to(self.device)
         target_values = target_values.to(self.device)
         predictions = model(inputs)
@@ -278,6 +278,11 @@ class PilotNetTrainer(Trainer):
     
     
 class PerceiverTrainer(Trainer):
+
+    def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None, n_conditional_branches=1, wandb_project=None):
+        super().__init__(model_name, n_conditional_branches, wandb_project)
+        self.prepare_dataloader_data_fn = prepare_dataloader_data_fn
+        self.is_many_to_one = is_many_to_one
 
     def predict(self, model, dataloader):
         all_predictions = []
@@ -289,7 +294,6 @@ class PerceiverTrainer(Trainer):
             for i, (data, target_values, condition_mask) in enumerate(dataloader):
                 inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device)
 
-                
                 latents = None
                 sequence_predictions = []
                 
@@ -304,27 +308,33 @@ class PerceiverTrainer(Trainer):
 
         return np.concatenate(all_predictions, axis=1)
 
-    def train_batch(self, model, data, target_values, condition_mask, criterion):
+    def train_batch(self, model, criterion, loader_data):
         model.train()
-        inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device) # (T, B, H, W, C)
-        target_values = rearrange(target_values, 'b t -> t b').to(self.device) # (T, B)
-        
+        inputs, target_values = self.prepare_dataloader_data_fn(loader_data)
+        inputs.to(self.device)
+        target_values.to(self.device)
         latents = None
         sequence_predictions = []
         total_loss = 0.0
-        
+        predictions = None
         for t in range(inputs.size(0)):
             input_frame = inputs[t]
-            target_frame = target_values[t]
 
             predictions, latents = model(input_frame, latents)
+
+            if not self.is_many_to_one:
+                target_frame = target_values[t]
+                sequence_predictions.append(predictions)
+                # Calculate loss for the current time step
+                loss = criterion(predictions.squeeze(), target_frame)
+                total_loss += loss
+
+        if self.is_many_to_one:
             sequence_predictions.append(predictions)
-
             # Calculate loss for the current time step
-            loss = criterion(predictions.squeeze(), target_frame)
-
+            loss = criterion(predictions.squeeze(), target_values)
             total_loss += loss
-            
+
         return torch.stack(sequence_predictions), total_loss
     
     def create_onxx_input(self, data):
@@ -336,8 +346,8 @@ class PerceiverTrainer(Trainer):
         all_predictions = []
 
         with torch.no_grad():
-            for i, (data, target_values, condition_mask) in enumerate(iterator):
-                predictions, loss = self.train_batch(model, data, target_values, condition_mask, criterion)
+            for i, loader_data in enumerate(iterator):
+                predictions, loss = self.train_batch(model, criterion, loader_data)
                 epoch_loss += loss.item()
                 all_predictions.append(predictions.cpu().numpy().squeeze(axis=2))
 
@@ -385,40 +395,3 @@ class PerceiverTrainer(Trainer):
             sys.exit()
 
         return metrics
-
-
-class ControlTrainer(Trainer):
-
-    def predict(self, model, dataloader):
-        all_predictions = []
-        model.eval()
-
-        with torch.no_grad():
-            progress_bar = tqdm(total=len(dataloader), smoothing=0)
-            progress_bar.set_description("Model predictions")
-            for i, (data, target_values, condition_mask) in enumerate(dataloader):
-                inputs = data['image'].to(self.device)
-                turn_signal = data['turn_signal']
-                control = F.one_hot(turn_signal, 3).to(self.device)
-                predictions = model(inputs, control)
-                all_predictions.extend(predictions.cpu().squeeze().numpy())
-                progress_bar.update(1)
-
-        return np.array(all_predictions)
-
-    def train_batch(self, model, data, target_values, condition_mask, criterion):
-        inputs = data['image'].to(self.device)
-        target_values = target_values.to(self.device)
-        turn_signal = data['turn_signal']
-        control = F.one_hot(turn_signal, 3).to(self.device)
-
-        predictions = model(inputs, control)
-        return predictions, criterion(predictions, target_values)
-
-    def create_onxx_input(self, data):
-        image_input = data[0]['image'].to(self.device)
-        turn_signal = data[0]['turn_signal']
-        control = F.one_hot(turn_signal, 3).to(torch.float32).to(self.device)
-        return image_input, control
-
-

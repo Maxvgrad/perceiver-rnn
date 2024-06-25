@@ -1,4 +1,3 @@
-import sys
 import unittest
 
 import torchvision
@@ -6,7 +5,6 @@ from pytorchvideo.data import LabeledVideoDataset, make_clip_sampler
 from pytorchvideo.transforms import ShortSideScale, Normalize, UniformCropVideo, ApplyTransformToKey, \
     UniformTemporalSubsample
 from torch.utils.data import RandomSampler
-from torchvision.transforms import functional
 
 from ucf11 import Ucf11  # replace 'your_module' with the actual module name
 
@@ -46,5 +44,4 @@ class TestUcf11(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    sys.modules["torchvision.transforms.functional_tensor"] = functional
     unittest.main()
