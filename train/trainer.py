@@ -20,7 +20,7 @@ from utils.model_utils import count_parameters, count_all_parameters
 
 class Trainer:
 
-    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None, target_name="steering_angle"):
+    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None, target_name="steering_angle", save_model=False):
         if torch.cuda.is_available():
             logging.info("Using CUDA")
             self.device = torch.device("cuda")
@@ -30,6 +30,7 @@ class Trainer:
         self.target_name = target_name
         self.n_conditional_branches = n_conditional_branches
         self.wandb_logging = False
+        self.save_model = save_model # TODO replace with callback
 
         if wandb_project:
             self.wandb_logging = True
@@ -157,6 +158,9 @@ class Trainer:
         return metrics
 
     def save_models(self, model, valid_loader):
+        if not self.save_model:
+            return
+
         torch.save(model.state_dict(), self.save_dir / "last.pt")
         if self.wandb_logging:
             wandb.save(f"{self.save_dir}/last.pt")
@@ -280,8 +284,8 @@ class PilotNetTrainer(Trainer):
     
 class PerceiverTrainer(Trainer):
 
-    def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None, n_conditional_branches=1, wandb_project=None, target_name='steering_angle'):
-        super().__init__(model_name, n_conditional_branches, wandb_project, target_name)
+    def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None, n_conditional_branches=1, wandb_project=None, target_name='steering_angle', save_model=False):
+        super().__init__(model_name, n_conditional_branches, wandb_project, target_name, save_model)
         self.prepare_dataloader_data_fn = prepare_dataloader_data_fn
         self.is_many_to_one = is_many_to_one
 
