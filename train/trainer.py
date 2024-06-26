@@ -20,14 +20,14 @@ from utils.model_utils import count_parameters, count_all_parameters
 
 class Trainer:
 
-    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None):
+    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None, target_name="steering_angle"):
         if torch.cuda.is_available():
             logging.info("Using CUDA")
             self.device = torch.device("cuda")
         else:
             logging.info("Using CPU")
             self.device = torch.device('cpu')
-        self.target_name = "steering_angle"
+        self.target_name = target_name
         self.n_conditional_branches = n_conditional_branches
         self.wandb_logging = False
 
@@ -148,8 +148,8 @@ class Trainer:
                 metrics["right_mae"] = right_metrics["mae"]
             else:
                 metrics["right_mae"] = 0
-
-
+        elif self.target_name == "n/a":
+            pass
         else:
             logging.error(f"Unknown target name {self.target_name}")
             sys.exit()
@@ -197,9 +197,9 @@ class Trainer:
 
     def train_epoch(self, model, loader, optimizer, criterion, progress_bar, epoch):
         running_loss = 0.0
+        batch_count = 0
 
         model.train()
-
         for i, loader_data in enumerate(loader):
             optimizer.zero_grad()
 
@@ -212,8 +212,9 @@ class Trainer:
 
             progress_bar.update(1)
             progress_bar.set_description(f'epoch {epoch+1} | train loss: {(running_loss / (i + 1)):.4f}')
+            batch_count += 1
 
-        return running_loss / self.dataset_len(loader) # TODO: count size
+        return running_loss / batch_count
 
 
     @abstractmethod
@@ -279,8 +280,8 @@ class PilotNetTrainer(Trainer):
     
 class PerceiverTrainer(Trainer):
 
-    def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None, n_conditional_branches=1, wandb_project=None):
-        super().__init__(model_name, n_conditional_branches, wandb_project)
+    def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None, n_conditional_branches=1, wandb_project=None, target_name='steering_angle'):
+        super().__init__(model_name, n_conditional_branches, wandb_project, target_name)
         self.prepare_dataloader_data_fn = prepare_dataloader_data_fn
         self.is_many_to_one = is_many_to_one
 
@@ -332,7 +333,7 @@ class PerceiverTrainer(Trainer):
         if self.is_many_to_one:
             sequence_predictions.append(predictions)
             # Calculate loss for the current time step
-            loss = criterion(predictions.squeeze(), target_values)
+            loss = criterion(predictions, target_values)
             total_loss += loss
 
         return torch.stack(sequence_predictions), total_loss
@@ -342,6 +343,7 @@ class PerceiverTrainer(Trainer):
     
     def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
         epoch_loss = 0.0
+        batch_count = 0
         model.eval()
         all_predictions = []
 
@@ -349,12 +351,13 @@ class PerceiverTrainer(Trainer):
             for i, loader_data in enumerate(iterator):
                 predictions, loss = self.train_batch(model, criterion, loader_data)
                 epoch_loss += loss.item()
-                all_predictions.append(predictions.cpu().numpy().squeeze(axis=2))
+                all_predictions.append(predictions.cpu().numpy().squeeze())
 
                 progress_bar.update(1)
                 progress_bar.set_description(f'epoch {epoch + 1} | train loss: {train_loss:.4f} | valid loss: {(epoch_loss / (i + 1)):.4f}')
+                batch_count += 1
 
-        total_loss = epoch_loss / len(iterator)
+        total_loss = epoch_loss / batch_count
         result = np.concatenate(all_predictions, axis=1)
         return total_loss, result
     
