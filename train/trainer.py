@@ -9,7 +9,6 @@ import onnx
 import torch
 import wandb
 from einops import rearrange
-from pytorchvideo.data import LabeledVideoDataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
 
@@ -39,6 +38,8 @@ class Trainer:
             datetime_prefix = datetime.today().strftime('%Y%m%d%H%M%S')
             self.save_dir = Path("trained_models") / f"{datetime_prefix}_{model_name}"
             self.save_dir.mkdir(parents=True, exist_ok=False)
+        self.train_batch_count = None
+        self.valid_batch_count = None
 
     def force_cpu(self):
         self.device = 'cpu'
@@ -69,12 +70,15 @@ class Trainer:
 
         logging.info("Model: %s number of all parameters: %s, trainable parameters: %s", model_type, num_params_all, num_params)
 
+        self.train_batch_count = self.dataset_len(train_loader)
+        self.valid_batch_count = self.dataset_len(valid_loader)
+
         for epoch in range(n_epoch):
 
-            progress_bar = tqdm(total=self.dataset_len(train_loader), smoothing=0)
+            progress_bar = tqdm(total=self.train_batch_count, smoothing=0)
             train_loss = self.train_epoch(model, train_loader, optimizer, criterion, progress_bar, epoch)
 
-            progress_bar.reset(total=self.dataset_len(valid_loader))
+            progress_bar.reset(total=self.valid_batch_count)
             valid_loss, predictions = self.evaluate(model, valid_loader, criterion, progress_bar, epoch, train_loss)
 
             scheduler.step(valid_loss)
@@ -97,7 +101,7 @@ class Trainer:
             left_mae = metrics['left_mae']
             straight_mae = metrics['straight_mae']
             right_mae = metrics['right_mae']
-            progress_bar.set_description(f'{best_loss_marker}epoch {epoch + 1}'
+            progress_bar.set_description(f'{best_loss_marker}epoch {epoch + 1}/{n_epoch}'
                                          f' | train loss: {train_loss:.4f}'
                                          f' | valid loss: {valid_loss:.4f}'
                                          f' | whiteness: {whiteness:.4f}'
@@ -217,7 +221,7 @@ class Trainer:
             progress_bar.update(1)
             progress_bar.set_description(f'epoch {epoch+1} | train loss: {(running_loss / (i + 1)):.4f}')
             batch_count += 1
-
+        self.train_batch_count = batch_count
         return running_loss / batch_count
 
 
@@ -232,11 +236,8 @@ class Trainer:
     def dataset_len(self, dataloader):
         if hasattr(dataloader.dataset, '__len__'):
             return len(dataloader)
-        elif isinstance(dataloader.dataset, LabeledVideoDataset):
-            return dataloader.dataset.num_videos
         else:
-            logging.error(f"Unsupported dataloader length: {dataloader.dataset}")
-            sys.exit()
+            return None
 
     def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
         epoch_loss = 0.0
@@ -360,7 +361,7 @@ class PerceiverTrainer(Trainer):
                 progress_bar.update(1)
                 progress_bar.set_description(f'epoch {epoch + 1} | train loss: {train_loss:.4f} | valid loss: {(epoch_loss / (i + 1)):.4f}')
                 batch_count += 1
-
+        self.valid_batch_count = batch_count
         total_loss = epoch_loss / batch_count
         result = all_predictions # np.concatenate(all_predictions, axis=1) TODO: fix for rally
         return total_loss, result
