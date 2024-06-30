@@ -64,6 +64,13 @@ def parse_arguments():
     )
 
     argparser.add_argument(
+        '--dataset-proportion',
+        type=float,
+        default=1.0,
+        help="Dataset proportion taken."
+    )
+
+    argparser.add_argument(
         '--seed',
         type=int,
         default=42,
@@ -140,13 +147,6 @@ def parse_arguments():
     )
 
     argparser.add_argument(
-        '--dataset-proportion',
-        type=float,
-        default=1.0,
-        help="Dataset proportion taken."
-    )
-
-    argparser.add_argument(
         '--clip-duration',
         type=float,
         default=2.0,
@@ -179,17 +179,68 @@ def parse_arguments():
         '--perceiver-in-channels',
         type=int,
         default=3,
-        help="Perceiver input channels"
+        help="Perceiver input channels."
     )
     argparser.add_argument(
         '--perceiver-latent-dim',
         type=int,
         default=512,
     )
+
+    argparser.add_argument(
+        '--perceiver-num-latents',
+        type=int,
+        default=256,
+        help="Number of latents, or induced set points, or centroids. "
+             "Different papers giving it different names."
+    )
+
     argparser.add_argument(
         '--perceiver-dropout',
         type=float,
         default=0,
+    )
+
+    argparser.add_argument(
+        '--perceiver-depth',
+        type=int,
+        default=1,
+        help="Depth of net."
+    )
+
+    argparser.add_argument(
+        '--perceiver-cross-heads',
+        type=int,
+        default=1,
+        help="Number of heads for cross attention."
+    )
+
+    argparser.add_argument(
+        '--perceiver-latent-heads',
+        type=int,
+        default=8,
+        help="Number of heads for latent self attention."
+    )
+
+    argparser.add_argument(
+        '--perceiver-cross-dim-head',
+        type=int,
+        default=64,
+        help="Number of dimensions per cross attention head."
+    )
+
+    argparser.add_argument(
+        '--perceiver-latent-dim-head',
+        type=int,
+        default=64,
+        help="Number of dimensions per latent self attention head."
+    )
+
+    argparser.add_argument(
+        '--perceiver-self-per-cross-attn',
+        type=int,
+        default=2,
+        help="Number of self attention blocks per cross attention."
     )
 
     return argparser.parse_args()
@@ -201,6 +252,7 @@ class TrainingConfig:
         self.model_name = args.model_name
         self.loss = args.loss
         self.dataset_folder = args.dataset_folder
+        self.dataset_proportion = args.dataset_proportion
         if 'ucf11' in args.dataset_folder.lower():
             self.dataset_name = DatasetName.UCF_11
         else:
@@ -215,7 +267,6 @@ class TrainingConfig:
         self.max_epochs = args.max_epochs
         self.patience = args.patience
         self.augment = bool(args.augment)
-        self.dataset_proportion = args.dataset_proportion
         self.fps = 30
         self.clip_duration = args.clip_duration
 
@@ -225,6 +276,13 @@ class TrainingConfig:
         self.perceiver_in_channels = args.perceiver_in_channels
         self.perceiver_latent_dim = args.perceiver_latent_dim
         self.perceiver_dropout = args.perceiver_dropout
+        self.perceiver_depth = args.perceiver_depth
+        self.perceiver_num_latents = args.perceiver_num_latents
+        self.perceiver_cross_heads = args.perceiver_cross_heads
+        self.perceiver_latent_heads = args.perceiver_latent_heads
+        self.perceiver_cross_dim_head = args.perceiver_cross_dim_head
+        self.perceiver_latent_dim_head = args.perceiver_latent_dim_head
+        self.perceiver_self_per_cross_attn = args.perceiver_self_per_cross_attn
 
     def as_dict(self):
         return {
@@ -233,6 +291,7 @@ class TrainingConfig:
             'loss': self.loss,
             'dataset_folder': self.dataset_folder,
             'dataset_name': self.dataset_name,
+            'dataset_proportion': self.dataset_proportion,
             'seed': self.seed,
             'batch_size': self.batch_size,
             'num_workers': self.num_workers,
@@ -243,15 +302,21 @@ class TrainingConfig:
             'max_epochs': self.max_epochs,
             'patience': self.patience,
             'augment': self.augment,
-            'dataset_proportion': self.dataset_proportion,
             'fps': self.fps,
             'clip_duration': self.clip_duration,
             'perceiver_seq_length': self.perceiver_seq_length,
             'perceiver_stride': self.perceiver_stride,
             'perceiver_img_pre_type': self.perceiver_img_pre_type,
             'perceiver_in_channels': self.perceiver_in_channels,
+            'perceiver_num_latents': self.perceiver_num_latents,
             'perceiver_latent_dim': self.perceiver_latent_dim,
-            'perceiver_dropout': self.perceiver_dropout
+            'perceiver_dropout': self.perceiver_dropout,
+            'perceiver_depth': self.perceiver_depth,
+            'perceiver_cross_heads': self.perceiver_cross_heads,
+            'perceiver_latent_heads': self.perceiver_latent_heads,
+            'perceiver_cross_dim_head': self.perceiver_cross_dim_head,
+            'perceiver_latent_dim_head': self.perceiver_latent_dim_head,
+            'perceiver_self_per_cross_attn': self.perceiver_self_per_cross_attn,
         }
 
 
@@ -271,6 +336,13 @@ class TuneHyperparametersConfig(TrainingConfig):
         self.perceiver_in_channels = config.perceiver_in_channels
         self.perceiver_latent_dim = config.perceiver_latent_dim
         self.perceiver_dropout = config.perceiver_dropout
+        self.perceiver_depth = config.perceiver_depth
+        self.perceiver_num_latents = config.perceiver_num_latents
+        self.perceiver_cross_heads = config.perceiver_cross_heads
+        self.perceiver_latent_heads = config.perceiver_latent_heads
+        self.perceiver_cross_dim_head = config.perceiver_cross_dim_head
+        self.perceiver_latent_dim_head = config.perceiver_latent_dim_head
+        self.perceiver_self_per_cross_attn = config.perceiver_self_per_cross_attn
 
 
 def train(train_config):
@@ -284,7 +356,7 @@ def train(train_config):
         save_model = True
         target_name = 'steering_angle'
         if train_config.dataset_name == DatasetName.UCF_11:
-            classifier_head = UcfClassPredictor(train_config.perceiver_latent_dim, 64)
+            classifier_head = UcfClassPredictor(train_config.perceiver_latent_dim, num_classes=11)
             is_many_to_one = True
             save_model = False
             target_name = 'n/a'
@@ -317,22 +389,23 @@ def train(train_config):
             input_axis=2,  # number of axis for input data (2 for images, 3 for video)
             num_freq_bands=6,  # number of freq bands, with original value (2 * K + 1)
             max_freq=10.,  # maximum frequency, hyperparameter depending on how fine the data is
-            depth=1,  # depth of net. The shape of the final attention mechanism will be:
+            depth=train_config.perceiver_depth,  # depth of net. The shape of the final attention mechanism will be:
             #   depth * (cross attention -> self_per_cross_attn * self attention)
-            num_latents=256,
+            num_latents=train_config.perceiver_num_latents,
             # number of latents, or induced set points, or centroids. different papers giving it different names
             latent_dim=train_config.perceiver_latent_dim,  # latent dimension
-            cross_heads=1,  # number of heads for cross attention. paper said 1
-            latent_heads=4,  # number of heads for latent self attention, 8
-            cross_dim_head=64,  # number of dimensions per cross attention head
-            latent_dim_head=64,  # number of dimensions per latent self attention head
-            num_classes=1,  # output number of classes
+            cross_heads=train_config.perceiver_cross_heads,  # number of heads for cross attention. paper said 1
+            latent_heads=train_config.perceiver_latent_heads,  # number of heads for latent self attention, 8
+            cross_dim_head=train_config.perceiver_cross_dim_head,  # number of dimensions per cross attention head
+            latent_dim_head=train_config.perceiver_latent_dim_head,  # number of dimensions per latent self attention head
+            num_classes=1,  # NOT USED. output number of classes.
             attn_dropout=train_config.perceiver_dropout,
             ff_dropout=train_config.perceiver_dropout,
             weight_tie_layers=False,  # whether to weight tie layers (optional, as indicated in the diagram)
             fourier_encode_data=True,
             # whether to auto-fourier encode the data, using the input_axis given. defaults to True, but can be turned off if you are fourier encoding the data yourself
-            self_per_cross_attn=2  # number of self attention blocks per cross attention
+            self_per_cross_attn=train_config.perceiver_self_per_cross_attn,  # number of self attention blocks per cross attention
+            final_classifier_head=False  # mean pool and project embeddings to number of classes (num_classes) at the end
         )
 
         model = PerceiverRNN(pmodel, classifier_head, preprocess=train_config.perceiver_img_pre_type)
@@ -437,7 +510,7 @@ def load_data(train_config):
 
 def tune_hyperparameters(tune_hyperparameters_config):
     sweep_configuration = {
-        'method': 'bayes',
+        'method': 'random',
         'name': tune_hyperparameters_config.wandb_sweep_name,
         'metric': {'goal': 'minimize', 'name': 'valid_loss'},
         'parameters': {
@@ -451,10 +524,14 @@ def tune_hyperparameters(tune_hyperparameters_config):
                 'min': 1e-3,
                 'max': 1e-2,
             },
-            'perceiver_seq_length': {'values': [32, 64, 128, 256, 512]},
-            'perceiver_stride': {'values': [32, 64, 128, 256, 512]},
-            'perceiver_in_channels': {'values': [1, 3]},
+            'perceiver_num_latents': {'values': [11, 16, 32, 64, 128, 256, 512]},
             'perceiver_latent_dim': {'values': [64, 128, 256, 512]},
+            'perceiver_depth': {'values': [1, 2]},
+            'perceiver_cross_heads': {'values': [1, 2, 4, 8]},
+            'perceiver_latent_heads': {'values': [2, 4, 8]},
+            'perceiver_cross_dim_head': {'values': [32, 64, 128]},
+            'perceiver_latent_dim_head': {'values': [32, 64, 128]},
+            'perceiver_self_per_cross_attn': {'values': [1, 2, 4]}
         },
         'early_terminate': {
             'type': 'hyperband',
