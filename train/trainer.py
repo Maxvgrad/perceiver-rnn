@@ -19,7 +19,8 @@ from utils.model_utils import count_parameters, count_all_parameters
 
 class Trainer:
 
-    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None, target_name="steering_angle", save_model=False):
+    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None, target_name="steering_angle",
+                 save_model=False, metric_multi_class_accuracy=None):
         if torch.cuda.is_available():
             logging.info("Using CUDA")
             self.device = torch.device("cuda")
@@ -40,6 +41,9 @@ class Trainer:
             self.save_dir.mkdir(parents=True, exist_ok=False)
         self.train_batch_count = None
         self.valid_batch_count = None
+        self.metric_multi_class_accuracy = None
+        if metric_multi_class_accuracy:
+            self.metric_multi_class_accuracy = metric_multi_class_accuracy.to(self.device)
 
     def force_cpu(self):
         self.device = 'cpu'
@@ -101,14 +105,20 @@ class Trainer:
             left_mae = metrics['left_mae']
             straight_mae = metrics['straight_mae']
             right_mae = metrics['right_mae']
+            accuracy = 0.0
+            if 'accuracy' in metrics:
+                accuracy = metrics['accuracy']
+
             progress_bar.set_description(f'{best_loss_marker}epoch {epoch + 1}/{n_epoch}'
                                          f' | train loss: {train_loss:.4f}'
                                          f' | valid loss: {valid_loss:.4f}'
+                                         f' | accuracy: {accuracy:.4f}'
                                          f' | whiteness: {whiteness:.4f}'
                                          f' | mae: {mae:.4f}'
                                          f' | l_mae: {left_mae:.4f}'
                                          f' | s_mae: {straight_mae:.4f}'
-                                         f' | r_mae: {right_mae:.4f}')
+                                         f' | r_mae: {right_mae:.4f}'
+                                         )
 
             if self.wandb_logging:
                 metrics['epoch'] = epoch + 1
@@ -285,8 +295,11 @@ class PilotNetTrainer(Trainer):
     
 class PerceiverTrainer(Trainer):
 
-    def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None, n_conditional_branches=1, wandb_project=None, target_name='steering_angle', save_model=False):
-        super().__init__(model_name, n_conditional_branches, wandb_project, target_name, save_model)
+    def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None,
+                 n_conditional_branches=1, wandb_project=None, target_name='steering_angle',
+                 save_model=False, metric_multi_class_accuracy=None
+                 ):
+        super().__init__(model_name, n_conditional_branches, wandb_project, target_name, save_model, metric_multi_class_accuracy)
         self.prepare_dataloader_data_fn = prepare_dataloader_data_fn
         self.is_many_to_one = is_many_to_one
 
@@ -358,6 +371,10 @@ class PerceiverTrainer(Trainer):
                 epoch_loss += loss.item()
                 all_predictions.append(predictions.cpu().numpy().squeeze())
 
+                if self.metric_multi_class_accuracy:
+                    self.metric_multi_class_accuracy.update(
+                        predictions.squeeze(), loader_data['label']
+                    )
                 progress_bar.update(1)
                 progress_bar.set_description(f'epoch {epoch + 1} | train loss: {train_loss:.4f} | valid loss: {(epoch_loss / (i + 1)):.4f}')
                 batch_count += 1
@@ -398,6 +415,7 @@ class PerceiverTrainer(Trainer):
                 metrics["right_mae"] = 0
         elif self.target_name == "n/a":
             metrics = {}
+            metrics['accuracy'] = self.metric_multi_class_accuracy.compute().item()
             metrics['whiteness'] = 0
             metrics['mae'] = 0
             metrics['left_mae'] = 0
