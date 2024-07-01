@@ -3,31 +3,34 @@ import sys
 from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
-from einops import rearrange
+
 import numpy as np
 import onnx
 import torch
-from torch.nn import functional as F
 import wandb
+from einops import rearrange
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
 
 from metrics.metrics import calculate_open_loop_metrics
+from models.model_type import ModelType
 from utils.model_utils import count_parameters, count_all_parameters
 
 
 class Trainer:
 
-    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None):
+    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None, target_name="steering_angle",
+                 save_model=False, metric_multi_class_accuracy=None):
         if torch.cuda.is_available():
             logging.info("Using CUDA")
             self.device = torch.device("cuda")
         else:
             logging.info("Using CPU")
             self.device = torch.device('cpu')
-        self.target_name = "steering_angle"
+        self.target_name = target_name
         self.n_conditional_branches = n_conditional_branches
         self.wandb_logging = False
+        self.save_model = save_model # TODO replace with callback
 
         if wandb_project:
             self.wandb_logging = True
@@ -36,6 +39,11 @@ class Trainer:
             datetime_prefix = datetime.today().strftime('%Y%m%d%H%M%S')
             self.save_dir = Path("trained_models") / f"{datetime_prefix}_{model_name}"
             self.save_dir.mkdir(parents=True, exist_ok=False)
+        self.train_batch_count = None
+        self.valid_batch_count = None
+        self.metric_multi_class_accuracy = None
+        if metric_multi_class_accuracy:
+            self.metric_multi_class_accuracy = metric_multi_class_accuracy.to(self.device)
 
     def force_cpu(self):
         self.device = 'cpu'
@@ -46,15 +54,14 @@ class Trainer:
         model = model.to(self.device)
         criterion = criterion.to(self.device)
 
-        if self.wandb_logging:
+        if model_type == ModelType.PILOTNET:
             # When using LazyModules Call `forward` with a dummy batch to initialize the parameters
             # before calling torch functions
             data, _, _ = next(iter(train_loader))
-            if model_type == 'perceiver':
-                inputs = rearrange(data['image'], 'b t c h w -> t b h w c')[0].to(self.device)
-            else:
-                inputs = data['image'].to(self.device)
+            inputs = data['image'].to(self.device)
             model(inputs)
+
+        if self.wandb_logging:
             wandb.watch(model, criterion)
 
         best_valid_loss = float('inf')
@@ -67,12 +74,15 @@ class Trainer:
 
         logging.info("Model: %s number of all parameters: %s, trainable parameters: %s", model_type, num_params_all, num_params)
 
+        self.train_batch_count = self.dataset_len(train_loader)
+        self.valid_batch_count = self.dataset_len(valid_loader)
+
         for epoch in range(n_epoch):
 
-            progress_bar = tqdm(total=len(train_loader), smoothing=0)
+            progress_bar = tqdm(total=self.train_batch_count, smoothing=0)
             train_loss = self.train_epoch(model, train_loader, optimizer, criterion, progress_bar, epoch)
 
-            progress_bar.reset(total=len(valid_loader))
+            progress_bar.reset(total=self.valid_batch_count)
             valid_loss, predictions = self.evaluate(model, valid_loader, criterion, progress_bar, epoch, train_loss)
 
             scheduler.step(valid_loss)
@@ -95,14 +105,20 @@ class Trainer:
             left_mae = metrics['left_mae']
             straight_mae = metrics['straight_mae']
             right_mae = metrics['right_mae']
-            progress_bar.set_description(f'{best_loss_marker}epoch {epoch + 1}'
+            accuracy = 0.0
+            if 'accuracy' in metrics:
+                accuracy = metrics['accuracy']
+
+            progress_bar.set_description(f'{best_loss_marker}epoch {epoch + 1}/{n_epoch}'
                                          f' | train loss: {train_loss:.4f}'
                                          f' | valid loss: {valid_loss:.4f}'
+                                         f' | accuracy: {accuracy:.4f}'
                                          f' | whiteness: {whiteness:.4f}'
                                          f' | mae: {mae:.4f}'
                                          f' | l_mae: {left_mae:.4f}'
                                          f' | s_mae: {straight_mae:.4f}'
-                                         f' | r_mae: {right_mae:.4f}')
+                                         f' | r_mae: {right_mae:.4f}'
+                                         )
 
             if self.wandb_logging:
                 metrics['epoch'] = epoch + 1
@@ -120,8 +136,8 @@ class Trainer:
 
     # TODO: make fps optional
     def calculate_metrics(self, fps, predictions, valid_loader):
-        frames_df = valid_loader.dataset.frames
         if self.target_name == "steering_angle":
+            frames_df = valid_loader.dataset.frames
             true_steering_angles = frames_df.steering_angle.to_numpy()
             metrics = calculate_open_loop_metrics(predictions, true_steering_angles, fps=fps)
             left_turns = frames_df["turn_signal"] == 0
@@ -147,8 +163,8 @@ class Trainer:
                 metrics["right_mae"] = right_metrics["mae"]
             else:
                 metrics["right_mae"] = 0
-
-
+        elif self.target_name == "n/a":
+            metrics = {}
         else:
             logging.error(f"Unknown target name {self.target_name}")
             sys.exit()
@@ -156,6 +172,9 @@ class Trainer:
         return metrics
 
     def save_models(self, model, valid_loader):
+        if not self.save_model:
+            return
+
         torch.save(model.state_dict(), self.save_dir / "last.pt")
         if self.wandb_logging:
             wandb.save(f"{self.save_dir}/last.pt")
@@ -165,7 +184,7 @@ class Trainer:
 
     def save_onnx(self, model, valid_loader):
         model.load_state_dict(torch.load(f"{self.save_dir}/best.pt"))
-        model.to(self.device)
+        model = model.to(self.device)
 
         #data = iter(valid_loader).next()
         #Update to fix an issue of deprecated code.
@@ -184,7 +203,7 @@ class Trainer:
             wandb.save(f"{self.save_dir}/best.onnx")
 
         model.load_state_dict(torch.load(f"{self.save_dir}/last.pt"))
-        model.to(self.device)
+        model = model.to(self.device)
 
         torch.onnx.export(model, sample_inputs, f"{self.save_dir}/last.onnx")
         onnx.checker.check_model(f"{self.save_dir}/last.onnx")
@@ -196,13 +215,13 @@ class Trainer:
 
     def train_epoch(self, model, loader, optimizer, criterion, progress_bar, epoch):
         running_loss = 0.0
+        batch_count = 0
 
         model.train()
-
-        for i, (data, target_values, condition_mask) in enumerate(loader):
+        for i, loader_data in enumerate(loader):
             optimizer.zero_grad()
 
-            predictions, loss = self.train_batch(model, data, target_values, condition_mask, criterion)
+            predictions, loss = self.train_batch(model, criterion, loader_data)
 
             loss.backward()
             optimizer.step()
@@ -211,17 +230,24 @@ class Trainer:
 
             progress_bar.update(1)
             progress_bar.set_description(f'epoch {epoch+1} | train loss: {(running_loss / (i + 1)):.4f}')
-
-        return running_loss / len(loader)
+            batch_count += 1
+        self.train_batch_count = batch_count
+        return running_loss / batch_count
 
 
     @abstractmethod
-    def train_batch(self, model, data, target_values, condition_mask, criterion):
+    def train_batch(self, model, criterion, loader_data):
         pass
 
     @abstractmethod
     def predict(self, model, dataloader):
         pass
+
+    def dataset_len(self, dataloader):
+        if hasattr(dataloader.dataset, '__len__'):
+            return len(dataloader)
+        else:
+            return None
 
     def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
         epoch_loss = 0.0
@@ -230,7 +256,7 @@ class Trainer:
 
         with torch.no_grad():
             for i, (data, target_values, condition_mask) in enumerate(iterator):
-                predictions, loss = self.train_batch(model, data, target_values, condition_mask, criterion)
+                predictions, loss = self.train_batch(model, criterion, (data, target_values, condition_mask))
                 epoch_loss += loss.item()
                 all_predictions.extend(predictions.cpu().squeeze().numpy())
 
@@ -259,7 +285,8 @@ class PilotNetTrainer(Trainer):
 
         return np.array(all_predictions)
 
-    def train_batch(self, model, data, target_values, condition_mask, criterion):
+    def train_batch(self, model, criterion, loader_data):
+        data, target_values, condition_mask = loader_data
         inputs = data['image'].to(self.device)
         target_values = target_values.to(self.device)
         predictions = model(inputs)
@@ -267,6 +294,14 @@ class PilotNetTrainer(Trainer):
     
     
 class PerceiverTrainer(Trainer):
+
+    def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None,
+                 n_conditional_branches=1, wandb_project=None, target_name='steering_angle',
+                 save_model=False, metric_multi_class_accuracy=None
+                 ):
+        super().__init__(model_name, n_conditional_branches, wandb_project, target_name, save_model, metric_multi_class_accuracy)
+        self.prepare_dataloader_data_fn = prepare_dataloader_data_fn
+        self.is_many_to_one = is_many_to_one
 
     def predict(self, model, dataloader):
         all_predictions = []
@@ -278,7 +313,6 @@ class PerceiverTrainer(Trainer):
             for i, (data, target_values, condition_mask) in enumerate(dataloader):
                 inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device)
 
-                
                 latents = None
                 sequence_predictions = []
                 
@@ -293,27 +327,33 @@ class PerceiverTrainer(Trainer):
 
         return np.concatenate(all_predictions, axis=1)
 
-    def train_batch(self, model, data, target_values, condition_mask, criterion):
+    def train_batch(self, model, criterion, loader_data):
         model.train()
-        inputs = rearrange(data['image'], 'b t c h w -> t b h w c').to(self.device) # (T, B, H, W, C)
-        target_values = rearrange(target_values, 'b t -> t b').to(self.device) # (T, B)
-        
+        inputs, target_values = self.prepare_dataloader_data_fn(loader_data)
+        inputs = inputs.to(self.device)
+        target_values = target_values.to(self.device)
         latents = None
         sequence_predictions = []
         total_loss = 0.0
-        
+        predictions = None
         for t in range(inputs.size(0)):
             input_frame = inputs[t]
-            target_frame = target_values[t]
 
             predictions, latents = model(input_frame, latents)
+
+            if not self.is_many_to_one:
+                target_frame = target_values[t]
+                sequence_predictions.append(predictions)
+                # Calculate loss for the current time step
+                loss = criterion(predictions.squeeze(), target_frame)
+                total_loss += loss
+
+        if self.is_many_to_one:
             sequence_predictions.append(predictions)
-
             # Calculate loss for the current time step
-            loss = criterion(predictions.squeeze(), target_frame)
-
+            loss = criterion(predictions, target_values)
             total_loss += loss
-            
+
         return torch.stack(sequence_predictions), total_loss
     
     def create_onxx_input(self, data):
@@ -321,27 +361,33 @@ class PerceiverTrainer(Trainer):
     
     def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
         epoch_loss = 0.0
+        batch_count = 0
         model.eval()
         all_predictions = []
 
         with torch.no_grad():
-            for i, (data, target_values, condition_mask) in enumerate(iterator):
-                predictions, loss = self.train_batch(model, data, target_values, condition_mask, criterion)
+            for i, loader_data in enumerate(iterator):
+                predictions, loss = self.train_batch(model, criterion, loader_data)
                 epoch_loss += loss.item()
-                all_predictions.append(predictions.cpu().numpy().squeeze(axis=2))
+                all_predictions.append(predictions.cpu().numpy().squeeze())
 
+                if self.metric_multi_class_accuracy:
+                    self.metric_multi_class_accuracy.update(
+                        predictions.squeeze(), loader_data['label']
+                    )
                 progress_bar.update(1)
                 progress_bar.set_description(f'epoch {epoch + 1} | train loss: {train_loss:.4f} | valid loss: {(epoch_loss / (i + 1)):.4f}')
-
-        total_loss = epoch_loss / len(iterator)
-        result = np.concatenate(all_predictions, axis=1)
+                batch_count += 1
+        self.valid_batch_count = batch_count
+        total_loss = epoch_loss / batch_count
+        result = all_predictions # np.concatenate(all_predictions, axis=1) TODO: fix for rally
         return total_loss, result
     
     def calculate_metrics(self, fps, predictions, valid_loader):
-        sequence_ids = np.concatenate(valid_loader.dataset.sequence_ids)
-        frames_df = valid_loader.dataset.frames.loc[sequence_ids].reset_index(drop=True)
-        predictions = predictions.flatten('F')
         if self.target_name == "steering_angle":
+            sequence_ids = np.concatenate(valid_loader.dataset.sequence_ids)
+            frames_df = valid_loader.dataset.frames.loc[sequence_ids].reset_index(drop=True)
+            predictions = predictions.flatten('F')
             true_steering_angles = frames_df.steering_angle.to_numpy()
             metrics = calculate_open_loop_metrics(predictions, true_steering_angles, fps=fps)
             left_turns = frames_df["turn_signal"] == 0
@@ -367,47 +413,16 @@ class PerceiverTrainer(Trainer):
                 metrics["right_mae"] = right_metrics["mae"]
             else:
                 metrics["right_mae"] = 0
-
-
+        elif self.target_name == "n/a":
+            metrics = {}
+            metrics['accuracy'] = self.metric_multi_class_accuracy.compute().item()
+            metrics['whiteness'] = 0
+            metrics['mae'] = 0
+            metrics['left_mae'] = 0
+            metrics['straight_mae'] = 0
+            metrics['right_mae'] = 0
         else:
             logging.error(f"Unknown target name {self.target_name}")
             sys.exit()
 
         return metrics
-
-
-class ControlTrainer(Trainer):
-
-    def predict(self, model, dataloader):
-        all_predictions = []
-        model.eval()
-
-        with torch.no_grad():
-            progress_bar = tqdm(total=len(dataloader), smoothing=0)
-            progress_bar.set_description("Model predictions")
-            for i, (data, target_values, condition_mask) in enumerate(dataloader):
-                inputs = data['image'].to(self.device)
-                turn_signal = data['turn_signal']
-                control = F.one_hot(turn_signal, 3).to(self.device)
-                predictions = model(inputs, control)
-                all_predictions.extend(predictions.cpu().squeeze().numpy())
-                progress_bar.update(1)
-
-        return np.array(all_predictions)
-
-    def train_batch(self, model, data, target_values, condition_mask, criterion):
-        inputs = data['image'].to(self.device)
-        target_values = target_values.to(self.device)
-        turn_signal = data['turn_signal']
-        control = F.one_hot(turn_signal, 3).to(self.device)
-
-        predictions = model(inputs, control)
-        return predictions, criterion(predictions, target_values)
-
-    def create_onxx_input(self, data):
-        image_input = data[0]['image'].to(self.device)
-        turn_signal = data[0]['turn_signal']
-        control = F.one_hot(turn_signal, 3).to(torch.float32).to(self.device)
-        return image_input, control
-
-
