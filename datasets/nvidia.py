@@ -1,12 +1,15 @@
-from torchvision import transforms
-from torch.utils.data import Dataset
-import pandas as pd
-import numpy as np
-import torchvision
-import torch
 import sys
+
+import numpy as np
+import pandas as pd
+import torch
+import torchvision
+from torch.utils.data import Dataset
 from torch.utils.data._utils.collate import default_collate
+from torchvision import transforms
+
 from data_prep.custom_transforms import ImageTransform, Normalize
+
 
 class NvidiaDataset(Dataset):
 
