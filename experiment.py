@@ -1,24 +1,16 @@
 import argparse
 import logging
-import os
-import random
 import sys
-from pathlib import Path
 
-import torchvision
 from einops import rearrange
-from pytorchvideo.data import make_clip_sampler
-from pytorchvideo.transforms import ApplyTransformToKey, ShortSideScale, UniformTemporalSubsample, UniformCropVideo, \
-    Normalize
 from torch.nn import MSELoss, L1Loss, CrossEntropyLoss
 from torch.optim import AdamW
-from torch.utils.data import DataLoader, SequentialSampler
+from torch.utils.data import DataLoader
 from torcheval.metrics import MulticlassAccuracy
 
 import wandb
-from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
+from datasets import build_dataset
 from datasets.dataset_name import DatasetName
-from datasets.ucf11 import Ucf11
 from models.model_type import ModelType
 from models.perciever import Perceiver
 from models.perciever_rnn import MLPPredictor, PerceiverRNN, UcfClassPredictor
@@ -60,8 +52,15 @@ def parse_arguments():
 
     argparser.add_argument(
         '--dataset-folder',
-        default="rally-estonia-cropped-antialias",
         help='Root path to the dataset.'
+    )
+
+    argparser.add_argument(
+        '--dataset',
+        required=False,
+        choices=['coco17', 'ucf11', 'rally-estonia'],
+        default='coco17',
+        help='Dataset name.'
     )
 
     argparser.add_argument(
@@ -361,8 +360,8 @@ class TuneHyperparametersConfig(TrainingConfig):
             self.perceiver_self_per_cross_attn = config.perceiver_self_per_cross_attn
 
 
-def train(train_config):
-    train_loader, valid_loader = load_data(train_config)
+def train(args, train_config):
+    train_loader, valid_loader = load_data(args)
 
     if train_config.model_type == ModelType.PILOTNET:
         model = PilotNet()
@@ -461,67 +460,30 @@ def get_loss_function(train_config):
         sys.exit()
 
 
-def load_data(train_config):
-    logging.info("Reading from: %s", train_config.dataset_folder)
+def load_data(args):
+    logging.info("Dataset %s reading from: %s", args.dataset, args.dataset_folder)
 
-    if train_config.dataset_name == DatasetName.UCF_11:
-        logging.info("Dataset type: UCF11.")
-        train_dataset, valid_dataset = Ucf11(
-            clip_sampler=make_clip_sampler('random', train_config.clip_duration),
-            video_sampler=SequentialSampler,
-            data_path=train_config.dataset_folder,
-            transform=torchvision.transforms.Compose(
-                [
-                    ApplyTransformToKey(
-                        key="video",
-                        transform=torchvision.transforms.Compose([
-                            ShortSideScale(size=224),
-                            UniformTemporalSubsample(num_samples=int(60 * train_config.clip_duration)),
-                            Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-                        ])),
-                    UniformCropVideo(size=224),
-                ]
-            ),
-            dataset_proportion=train_config.dataset_proportion
-        )
+    dataset_name = args.dataset.lower() if args.dataset is str else ''
 
-        collate_fn = None
-    elif train_config.dataset_name == DatasetName.RALLY_ESTONIA:
-        logging.info("Dataset type: RallyEstonia.")
-
-        dataset_path = Path(train_config.dataset_folder)
-        random.seed(train_config.seed)
-        data_dirs = os.listdir(dataset_path)
-        random.shuffle(data_dirs)
-        split_index = int(0.8 * len(data_dirs))
-        train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
-        valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
-
-        if train_config.model_type == "pilotnet":
-            train_dataset = NvidiaDataset(train_paths, dataset_proportion=train_config.dataset_proportion)
-            valid_dataset = NvidiaDataset(valid_paths, dataset_proportion=train_config.dataset_proportion)
-        elif train_config.model_type == "perceiver":
-            train_dataset = NvidiaDatasetRNN(
-                train_paths, train_config.perceiver_seq_length, train_config.perceiver_stride,
-                dataset_proportion=train_config.dataset_proportion)
-            valid_dataset = NvidiaDatasetRNN(
-                valid_paths, train_config.perceiver_seq_length, train_config.perceiver_stride,
-                dataset_proportion=train_config.dataset_proportion)
-        else:
-            logging.error("Unknown model type: %s", train_config.model_type)
-            sys.exit()
-
+    collate_fn = None
+    if dataset_name == DatasetName.COCO_17.value:
+        train_dataset = build_dataset(image_set='train', args=args)
+        valid_dataset = build_dataset(image_set='val', args=args)
+    elif dataset_name == DatasetName.UCF_11.value:
+        train_dataset, valid_dataset = build_dataset(image_set=None, args=args)
+    elif dataset_name == DatasetName.RALLY_ESTONIA.value:
+        train_dataset, valid_dataset = build_dataset(image_set=None, args=args)
         collate_fn = train_dataset.collate_fn
     else:
-        logging.error("Unknown dataset name: %s", train_config.dataset_name)
+        logging.error("Unknown dataset name: %s", args.dataset_name)
         sys.exit()
 
-    train_loader = DataLoader(train_dataset, batch_size=train_config.batch_size, shuffle=False,
-                              num_workers=train_config.num_workers, pin_memory=True,
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False,
+                              num_workers=args.num_workers, pin_memory=True,
                               persistent_workers=True, collate_fn=collate_fn)
 
-    valid_loader = DataLoader(valid_dataset, batch_size=train_config.batch_size, shuffle=False,
-                              num_workers=train_config.num_workers, pin_memory=True,
+    valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False,
+                              num_workers=args.num_workers, pin_memory=True,
                               persistent_workers=False, collate_fn=collate_fn)
 
     return train_loader, valid_loader
@@ -557,7 +519,7 @@ def tune_hyperparameters(tune_hyperparameters_config):
         with wandb.init(project=tune_hyperparameters_config.wandb_project):
             tune_hyperparameters_config.update(wandb.config)
             train_conf = TrainingConfig(tune_hyperparameters_config)
-            train(train_conf)
+            train(wandb.config, train_conf)
 
             logging.info(f'Finishing wandb.')
             wandb.finish()
@@ -573,7 +535,7 @@ if __name__ == "__main__":
         config = TrainingConfig(args)
         if config.wandb_project:
             wandb.init(project=config.wandb_project, config=config.as_dict())
-        train(config)
+        train(args, config)
         if config.wandb_project:
             logging.info(f'Finishing wandb.')
             wandb.finish()
