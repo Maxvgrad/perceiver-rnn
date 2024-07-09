@@ -375,6 +375,7 @@ def load_data(args):
     if dataset_name == DatasetName.COCO_17.value:
         train_dataset = build_dataset(image_set='train', args=args)
         valid_dataset = build_dataset(image_set='val', args=args)
+        collate_fn = lambda batch: tuple(zip(*batch))
     elif dataset_name == DatasetName.UCF_11.value:
         train_dataset, valid_dataset = build_dataset(image_set=None, args=args)
     elif dataset_name == DatasetName.RALLY_ESTONIA.value:
@@ -424,7 +425,7 @@ def tune_hyperparameters(tune_hyperparameters_config):
     def sweep_train():
         with wandb.init(project=tune_hyperparameters_config.wandb_project):
             tune_hyperparameters_config.update(wandb.config)
-            #TODO: use args
+            # TODO: use args
             train(wandb.config)
             logging.info(f'Finishing wandb.')
             wandb.finish()
