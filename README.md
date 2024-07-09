@@ -15,6 +15,36 @@ path/to/coco/
   val2017/      # val images
 ```
 
+## Training
+
+```shell
+python experiment.py \
+  --mode train \
+  --model-type perceiver \
+  --model-name perceiver_object_detection \
+  --loss detr \
+  --dataset-folder /path/coco17 \
+  --dataset coco17 \
+  --wandb-project wandb-train-perceiver-v1 \
+  --batch-size 64 \
+  --num-workers 1 \
+  --learning-rate 0.001 \
+  --weight-decay 0.03 \
+  --learning-rate-patience 10 \
+  --patience 3 \
+  --max-epochs 10 \
+  --perceiver-img-pre-type resnet18 \
+  --perceiver-in-channels 512 \
+  --perceiver-latent-dim 128 \
+  --perceiver-num-latents 128 \
+  --perceiver-depth 1 \
+  --perceiver-cross-heads 1 \
+  --perceiver-latent-heads 1 \
+  --perceiver-cross-dim-head 1 \
+  --perceiver-latent-dim-head 1 \
+  --perceiver-self-per-cross-attn 1
+```
+
 # Usage - Regression
 
 ### Evaluation 
@@ -103,8 +133,3 @@ Next time if you want to run any tests in the notebook, you should only check th
     ```
     
     - More information about `wandb`  [here](https://docs.wandb.ai/guide)
-  
-## Converting original dataset for training
-- From project directory, run: `sbatch convert_to_tensor_dataset.sh.dev`
-- This will take a couple of hours. A folder will be created in project directory called `tensor_dataset` and will be filled with subfloders. 
-- Check that the sbatch is running, as it asks for 64G memory.
