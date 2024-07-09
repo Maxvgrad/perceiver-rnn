@@ -3,7 +3,6 @@ import logging
 import sys
 
 from einops import rearrange
-from torch.nn import MSELoss, L1Loss, CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torcheval.metrics import MulticlassAccuracy
@@ -11,7 +10,7 @@ from torcheval.metrics import MulticlassAccuracy
 import wandb
 from datasets import build_dataset
 from datasets.dataset_name import DatasetName
-from models import build_model
+from models import build_model, build_criterion
 from models.model_type import ModelType
 from train.trainer import PerceiverTrainer, PilotNetTrainer
 
@@ -411,24 +410,12 @@ def train(args, train_config):
         logging.error("Unknown model type: %s", train_config.model_type)
         sys.exit()
 
-    criterion = get_loss_function(train_config)
+    criterion = build_criterion(args)
     optimizer = AdamW(model.parameters(), lr=train_config.learning_rate, betas=(0.9, 0.999),
                       eps=1e-08, weight_decay=train_config.weight_decay, amsgrad=False)
 
     trainer.train(model, train_config.model_type, train_loader, valid_loader, optimizer, criterion,
                   train_config.max_epochs, train_config.patience, train_config.learning_rate_patience, train_config.fps)
-
-
-def get_loss_function(train_config):
-    if train_config.loss == 'mse':
-        return MSELoss()
-    elif train_config.loss == 'mae':
-        return L1Loss()
-    elif train_config.loss == 'ce':
-        return CrossEntropyLoss()
-    else:
-        logging.error("Unknown loss function type: %s", train_config.loss)
-        sys.exit()
 
 
 def load_data(args):
