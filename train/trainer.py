@@ -45,15 +45,13 @@ class Trainer:
         if metric_multi_class_accuracy:
             self.metric_multi_class_accuracy = metric_multi_class_accuracy.to(self.device)
 
-    def force_cpu(self):
-        self.device = 'cpu'
-
     def train(self, model, model_type, train_loader, valid_loader, optimizer, criterion, n_epoch,
               patience=10, lr_patience=10, fps=30):
 
         model = model.to(self.device)
         criterion = criterion.to(self.device)
 
+        #TODO: Init hook
         if model_type == ModelType.PILOTNET:
             # When using LazyModules Call `forward` with a dummy batch to initialize the parameters
             # before calling torch functions
@@ -74,8 +72,8 @@ class Trainer:
 
         logging.info("Model: %s number of all parameters: %s, trainable parameters: %s", model_type, num_params_all, num_params)
 
-        self.train_batch_count = self.dataset_len(train_loader)
-        self.valid_batch_count = self.dataset_len(valid_loader)
+        self.train_batch_count = dataset_len(train_loader)
+        self.valid_batch_count = dataset_len(valid_loader)
 
         for epoch in range(n_epoch):
 
@@ -234,20 +232,17 @@ class Trainer:
         self.train_batch_count = batch_count
         return running_loss / batch_count
 
-
-    @abstractmethod
     def train_batch(self, model, criterion, loader_data):
-        pass
+        sample, targets = loader_data
+        sample = sample.to(self.device)
+        targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
+        predictions = model(sample)
+        loss = criterion(predictions, targets)
+        return predictions, loss
 
     @abstractmethod
     def predict(self, model, dataloader):
         pass
-
-    def dataset_len(self, dataloader):
-        if hasattr(dataloader.dataset, '__len__'):
-            return len(dataloader)
-        else:
-            return None
 
     def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
         epoch_loss = 0.0
@@ -266,6 +261,13 @@ class Trainer:
         total_loss = epoch_loss / len(iterator)
         result = np.array(all_predictions)
         return total_loss, result
+
+
+def dataset_len(dataloader):
+    if hasattr(dataloader.dataset, '__len__'):
+        return len(dataloader)
+    else:
+        return None
 
 
 class PilotNetTrainer(Trainer):
