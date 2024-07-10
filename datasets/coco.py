@@ -1,18 +1,13 @@
 from pathlib import Path
 
-import torch
 import torch.utils.data
 import torchvision.datasets
-import torchvision.transforms.v2 as T
 
 from torchvision.datasets import wrap_dataset_for_transforms_v2
 
-import pathlib
-
 import torch
 import torch.utils.data
 
-from torchvision import models, datasets, tv_tensors
 from torchvision.transforms import v2
 
 
@@ -22,6 +17,17 @@ class CocoDetection(torchvision.datasets.CocoDetection):
 
     def __getitem__(self, idx):
         img, target = super(CocoDetection, self).__getitem__(idx)
+
+        if len(target) == 0:
+            # COCO dataset contains images with no annotations
+            # If so then provide empty target
+            target = [
+                {
+                    'segmentation': [], 'area': 0, 'iscrowd': 0,
+                    'image_id': idx, 'bbox': [0, 0, 0, 0], 'category_id': 0, 'id': 0
+                }
+            ]
+
         return img, target
 
 
@@ -41,15 +47,15 @@ def make_coco_transforms(image_set):
         ])
 
     if image_set == 'val':
-      return v2.Compose(
-        [
-            v2.ToImage(),
-            v2.CenterCrop(512),
-            v2.SanitizeBoundingBoxes(),
-            v2.ToDtype(torch.float32, scale=True),
-            normalize
-        ]
-    )
+        return v2.Compose(
+            [
+                v2.ToImage(),
+                v2.CenterCrop(512),
+                v2.SanitizeBoundingBoxes(),
+                v2.ToDtype(torch.float32, scale=True),
+                normalize
+            ]
+        )
 
     raise ValueError(f'unknown {image_set}')
 
@@ -65,5 +71,5 @@ def build(image_set, args):
 
     img_folder, ann_file = PATHS[image_set]
     dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set))
-    dataset = wrap_dataset_for_transforms_v2(dataset)
+    dataset = wrap_dataset_for_transforms_v2(dataset, target_keys=("boxes", "labels"))
     return dataset
