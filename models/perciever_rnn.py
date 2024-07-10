@@ -72,9 +72,8 @@ class ObjectDetectionHead(nn.Module):
         """
         outputs_class = self.class_embed(hs)
         outputs_coord = self.bbox_embed(hs).sigmoid()
-        out = {'pred_logits': outputs_class[-1], 'pred_boxes': outputs_coord[-1]}
+        out = {'pred_logits': outputs_class, 'pred_boxes': outputs_coord}
         return out
-
 
 
 class UcfClassPredictor(nn.Module):
@@ -103,8 +102,8 @@ class PerceiverRnn(nn.Module):
         # latents (B, num_latents, latent_dim)
         preprocessed = self.image_preprocess(batch)
         latents = self.perceiver.forward(preprocessed, latents=latents, return_embeddings=True)
-        steering = self.classifier_head.forward(latents)
-        return steering, latents
+        predictions = self.classifier_head.forward(latents)
+        return predictions, latents
 
 
 def build_perceiver_rnn(args):
