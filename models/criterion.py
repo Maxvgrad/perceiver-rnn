@@ -120,7 +120,6 @@ class DetrLossCriterion(nn.Module):
             'labels': self.loss_labels,
             'cardinality': self.loss_cardinality,
             'boxes': self.loss_boxes,
-            'masks': self.loss_masks
         }
         assert loss in loss_map, f'do you really want to compute {loss} loss?'
         return loss_map[loss](outputs, targets, indices, num_boxes, **kwargs)
@@ -165,4 +164,7 @@ class DetrLossCriterion(nn.Module):
                     l_dict = {k + f'_{i}': v for k, v in l_dict.items()}
                     losses.update(l_dict)
 
-        return losses
+        weight_dict = self.weight_dict
+        loss_sum = sum(losses[k] * weight_dict[k] for k in losses.keys() if k in weight_dict)
+
+        return loss_sum
