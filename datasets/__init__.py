@@ -17,7 +17,7 @@ from .ucf11 import Ucf11
 
 def build_dataset(args, image_set):
     if args.dataset == 'coco17':
-        return build_coco(image_set, args)
+        return build_coco(args, image_set)
     elif args.dataset == 'ucf11':
         return Ucf11(
             clip_sampler=make_clip_sampler('random', args.clip_duration),

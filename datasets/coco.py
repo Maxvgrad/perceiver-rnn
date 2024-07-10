@@ -60,7 +60,7 @@ def make_coco_transforms(image_set):
     raise ValueError(f'unknown {image_set}')
 
 
-def build(image_set, args):
+def build(args, image_set):
     root = Path(args.dataset_folder)
     assert root.exists(), f'provided COCO path {root} does not exist'
     mode = 'instances'
