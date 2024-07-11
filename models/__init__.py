@@ -3,12 +3,14 @@ import sys
 
 from torch.nn import MSELoss, L1Loss, CrossEntropyLoss
 
+from datasets.dataset_name import DatasetName
 from .criterion import DetrLossCriterion
 from .matcher import build_matcher, HungarianMatcher
 from .model_type import ModelType
 from .perciever import Perceiver
 from .perciever_rnn import UcfClassPredictor, MLPPredictor, PerceiverRnn, build_perceiver_rnn
 from .pilotnet import PilotNet
+from .postprocessor import PostProcess
 
 
 def build_model(args):
@@ -52,3 +54,10 @@ def build_criterion(args):
     else:
         logging.error("Unknown loss function type: %s", args.loss)
         sys.exit()
+
+
+def build_postprocessors(args):
+    postprocessors = {}
+    if args.dataset == DatasetName.COCO_17.value:
+        postprocessors['bbox'] = PostProcess()
+    return postprocessors

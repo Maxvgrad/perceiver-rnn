@@ -18,7 +18,7 @@ from .ucf11 import Ucf11
 
 def build_dataset(args, image_set):
     if args.dataset == 'coco17':
-        return dataset_proportion(args=args, dataset=build_coco(args, image_set))
+        return _dataset_proportion(args=args, dataset=build_coco(args, image_set))
     elif args.dataset == 'ucf11':
         return Ucf11(
             clip_sampler=make_clip_sampler('random', args.clip_duration),
@@ -65,7 +65,7 @@ def build_dataset(args, image_set):
     raise ValueError(f'dataset {args.dataset_file} not supported')
 
 
-def dataset_proportion(args, dataset):
+def _dataset_proportion(args, dataset):
     if args.dataset_proportion < 1.0:
         dataset_size = len(dataset)
         subset_size = int(args.dataset_proportion * dataset_size)
@@ -76,3 +76,11 @@ def dataset_proportion(args, dataset):
         dataset = Subset(dataset, subset_indices)
 
     return dataset
+
+
+def get_coco_api_from_dataset(dataset):
+    for _ in range(10):
+        if isinstance(dataset, Subset):
+            dataset = dataset.dataset
+    if isinstance(dataset, torchvision.datasets.CocoDetection):
+        return dataset.coco
