@@ -2,14 +2,14 @@ import argparse
 import logging
 import sys
 
-import torch
 import wandb
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
 from datasets import build_dataset
 from datasets.dataset_name import DatasetName
-from models import build_model, build_criterion
+from metrics import get_build_evaluators_fn
+from models import build_model, build_criterion, build_postprocessors
 from models.model_type import ModelType
 from train import build_trainer
 
@@ -360,11 +360,13 @@ def train(args):
     train_loader, valid_loader = load_data(args)
     model = build_model(args)
     trainer = build_trainer(args)
+    postprocessors = build_postprocessors(args)
+    build_evaluators_fn = get_build_evaluators_fn(args, valid_loader.dataset)
     criterion = build_criterion(args)
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.999),
                       eps=1e-08, weight_decay=args.weight_decay, amsgrad=False)
-    trainer.train(model, args.model_type, train_loader, valid_loader, optimizer, criterion,
-                  args.max_epochs, args.patience, args.learning_rate_patience)
+    trainer.train(model, args.model_type, train_loader, valid_loader, optimizer, criterion, postprocessors,
+                  build_evaluators_fn, args.max_epochs, args.patience, args.learning_rate_patience)
 
 
 def load_data(args):

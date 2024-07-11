@@ -1,13 +1,10 @@
 from pathlib import Path
 
-import torch.utils.data
-import torchvision.datasets
-
-from torchvision.datasets import wrap_dataset_for_transforms_v2
-
 import torch
 import torch.utils.data
-
+import torch.utils.data
+import torchvision.datasets
+from torchvision.datasets import wrap_dataset_for_transforms_v2
 from torchvision.transforms import v2
 
 
@@ -27,8 +24,31 @@ class CocoDetection(torchvision.datasets.CocoDetection):
                     'image_id': idx, 'bbox': [0, 0, 0, 0], 'category_id': 0, 'id': 0
                 }
             ]
-
+        w, h = img.size
+        target.append({
+            'orig_size': torch.as_tensor([int(h), int(w)])
+        })
         return img, target
+
+
+class CocoDetectionDecorator(torchvision.datasets.CocoDetection):
+    def __init__(self, original_coco_detection_dataset, dataset_wrapper, annFile: str):
+        super().__init__(original_coco_detection_dataset.root, annFile)
+        self.coco = original_coco_detection_dataset.coco
+        self.dataset_wrapper = dataset_wrapper
+        self.original_coco_detection_dataset = original_coco_detection_dataset
+
+    def __getitem__(self, idx):
+        original_img, _ = self.original_coco_detection_dataset.__getitem__(idx)
+        img, target = self.dataset_wrapper.__getitem__(idx)
+        w, h = original_img.size
+        # Hack provide original size of image
+        target['orig_size'] = torch.as_tensor([int(h), int(w)])
+        target['image_id'] = torch.tensor([target['image_id']])
+        return img, target
+
+    def __len__(self):
+        return self.original_coco_detection_dataset.__len__()
 
 
 def make_coco_transforms(image_set):
@@ -71,5 +91,12 @@ def build(args, image_set):
 
     img_folder, ann_file = PATHS[image_set]
     dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set))
-    dataset = wrap_dataset_for_transforms_v2(dataset, target_keys=("boxes", "labels"))
-    return dataset
+    wrapper_dataset = wrap_dataset_for_transforms_v2(
+        dataset,
+        target_keys=("boxes", "labels", 'image_id')
+    )
+    return CocoDetectionDecorator(
+        original_coco_detection_dataset=dataset,
+        dataset_wrapper=wrapper_dataset,
+        annFile=ann_file
+    )
