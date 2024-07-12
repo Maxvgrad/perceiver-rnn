@@ -1,5 +1,4 @@
 import argparse
-import copy
 import logging
 import sys
 from collections import namedtuple
@@ -322,7 +321,7 @@ def tune_hyperparameters(args):
     def sweep_train():
         with wandb.init(project=args.wandb_project):
 
-            wandb_config_copy = copy.deepcopy(wandb.config)
+            wandb_config_copy = dict(wandb.config)
 
             wandb_config_copy['perceiver_cross_dim_head'] = args.perceiver_in_channels // wandb_config_copy['perceiver_cross_heads']
             wandb_config_copy['perceiver_latent_dim_head'] = wandb_config_copy['perceiver_latent_dim'] // wandb_config_copy['perceiver_latent_heads']
