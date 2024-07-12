@@ -150,6 +150,13 @@ def parse_arguments():
     )
 
     argparser.add_argument(
+        '--verbose',
+        type=bool,
+        default=False,
+        help="Verbose logging mode."
+    )
+
+    argparser.add_argument(
         '--perceiver-seq-length',
         type=int,
         default=8,
@@ -344,8 +351,9 @@ def merge_args_with_wandb_config(args, wandb_config):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     args = parse_arguments()
+    level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=level)
 
     if args.mode == 'train':
         if args.wandb_project:

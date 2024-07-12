@@ -39,6 +39,7 @@ python experiment.py \
   --learning-rate-patience 10 \
   --patience 3 \
   --max-epochs 10 \
+  --verbose \
   --perceiver-img-pre-type resnet18 \
   --perceiver-in-channels 512 \
   --perceiver-latent-dim 128 \
