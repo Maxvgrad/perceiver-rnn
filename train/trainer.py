@@ -115,13 +115,13 @@ class Trainer:
         return best_valid_loss
 
     def save_models(self, model, valid_loader):
-        if not self.save_model:
-            return
-
         torch.save(model.state_dict(), self.save_dir / "last.pt")
         if self.wandb_logging:
             wandb.save(f"{self.save_dir}/last.pt")
             wandb.save(f"{self.save_dir}/best.pt")
+
+        if not self.save_model:
+            return
 
         self.save_onnx(model, valid_loader)
 
