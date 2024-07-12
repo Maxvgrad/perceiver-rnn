@@ -42,7 +42,7 @@ def build_criterion(args):
         num_classes = 91 #TODO: based on dataset
 
         hungarian_matcher = HungarianMatcher()
-        losses = ['labels', 'boxes', 'cardinality']
+        losses = ['labels']#, 'boxes', 'cardinality']
         weight_dict = {'loss_ce': 1, 'loss_bbox': 5, 'loss_giou': 2}
         return DetrLossCriterion(
             num_classes=num_classes,
