@@ -164,6 +164,9 @@ class DetrLossCriterion(nn.Module):
                     l_dict = {k + f'_{i}': v for k, v in l_dict.items()}
                     losses.update(l_dict)
 
+        loss_breakdown = ' | '.join([f'{k}_unscaled: {v}' for k, v in losses.items()])
+        print(loss_breakdown)
+
         weight_dict = self.weight_dict
         loss_sum = sum(losses[k] * weight_dict[k] for k in losses.keys() if k in weight_dict)
 
