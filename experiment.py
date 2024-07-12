@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+from collections import namedtuple
 
 import wandb
 from torch.optim import AdamW
@@ -408,10 +409,10 @@ def load_data(args):
     return train_loader, valid_loader
 
 
-def tune_hyperparameters(tune_hyperparameters_config):
+def tune_hyperparameters(args):
     sweep_configuration = {
         'method': 'random',
-        'name': tune_hyperparameters_config.wandb_sweep_name,
+        'name': args.wandb_sweep_name,
         'metric': {'goal': 'minimize', 'name': 'valid_loss'},
         'parameters': {
             'perceiver_num_latents': {'values': [11, 16, 32, 256, 512]},
@@ -427,22 +428,39 @@ def tune_hyperparameters(tune_hyperparameters_config):
             'type': 'hyperband',
             's': 3,
             'eta': 3,
-            'max_iter': tune_hyperparameters_config.max_epochs,
+            'max_iter': args.max_epochs,
             'strict': True,
         }
     }
 
-    sweep_id = wandb.sweep(sweep=sweep_configuration, project=tune_hyperparameters_config.wandb_project)
+    sweep_id = wandb.sweep(sweep=sweep_configuration, project=args.wandb_project)
 
     def sweep_train():
-        with wandb.init(project=tune_hyperparameters_config.wandb_project):
-            tune_hyperparameters_config.update(wandb.config)
-            # TODO: use args
-            train(wandb.config)
+        with wandb.init(project=args.wandb_project):
+            # Please merge wandb config with args
+            # wandb.config
+            # args
+            # new_args
+            print("args:")
+            print(args)
+            print("wandb.config:")
+            print(wandb.config)
+            print("new_args:")
+            new_args = merge_args_with_wandb_config(args, wandb.config)
+            print(new_args)
+            train(new_args)
             logging.info(f'Finishing wandb.')
             wandb.finish()
 
     wandb.agent(sweep_id, function=sweep_train)
+
+
+def merge_args_with_wandb_config(args, wandb_config):
+    args_dict = vars(args)  # Convert Namespace to a dictionary
+    for key, value in wandb_config.items():
+        if key in args_dict:
+            args_dict[key] = value
+    return namedtuple('Args', args_dict.keys())(*args_dict.values())
 
 
 if __name__ == "__main__":
@@ -457,5 +475,4 @@ if __name__ == "__main__":
             logging.info(f'Finishing wandb.')
             wandb.finish()
     elif args.mode == 'tune_hyperparameters':
-        config = TuneHyperparametersConfig(args)
         tune_hyperparameters(args)
