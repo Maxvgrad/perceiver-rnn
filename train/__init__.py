@@ -39,7 +39,6 @@ def build_trainer(args):
             return Trainer(
                 model_name=args.model_name,
                 wandb_project=args.wandb_project,
-                save_model=save_model,
             )
 
         return PerceiverTrainer(
