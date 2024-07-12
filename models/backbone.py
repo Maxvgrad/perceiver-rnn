@@ -28,6 +28,8 @@ def build_image_preprocess_backbone(args):
             resnet18.maxpool,
             resnet18.layer1,
             resnet18.layer2,
+            resnet18.layer3,
+            resnet18.layer4,
             Rearrange('b c h w -> b h w c'), # Perceiver's expected output
         )
     else:
