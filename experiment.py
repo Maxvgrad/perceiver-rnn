@@ -115,14 +115,21 @@ def parse_arguments():
         default=100,
         help="Maximum number of epochs to train."
     )
-    
+
+    argparser.add_argument(
+        '--augment',
+        type=bool,
+        default=False,
+        help="Augment."
+    )
+
     argparser.add_argument(
         '--seq-length',
         type=int,
         default=8,
         help="Number of frames in one RNN sequence."
     )
-    
+
     argparser.add_argument(
         '--stride',
         type=int,
@@ -131,6 +138,7 @@ def parse_arguments():
     )
 
     return argparser.parse_args()
+
 
 class TrainingConfig:
     def __init__(self, args):
@@ -149,32 +157,19 @@ class TrainingConfig:
         self.patience = args.patience
         self.seq_length = args.seq_length
         self.stride = args.stride
+        self.augment = args.augment
         self.fps = 30
 
 
-class TuneHyperparametersConfig:
+class TuneHyperparametersConfig(TrainingConfig):
     def __init__(self, args):
-        self.model_type = args.model_type
-        self.model_name = args.model_name
-        self.loss = args.loss
-        self.dataset_folder = args.dataset_folder
-        self.seed = args.seed
-        self.batch_size = args.batch_size
-        self.num_workers = args.num_workers
-        self.weight_decay = args.weight_decay
-        self.learning_rate = args.learning_rate
-        self.learning_rate_patience = args.learning_rate_patience
-        self.wandb_project = args.wandb_project
-        self.max_epochs = args.max_epochs
-        self.patience = args.patience
-        self.seq_length = args.seq_length
-        self.stride = args.stride
-        self.fps = 30
+        super().__init__(args)
 
     def update(self, config):
         self.learning_rate = config.learning_rate
         self.batch_size = config.batch_size
         self.weight_decay = config.weight_decay
+        self.augment = config.augment
 
 
 def train(train_config):
@@ -204,7 +199,7 @@ def train(train_config):
             self_per_cross_attn = 2      # number of self attention blocks per cross attention
         )
         steering_classifier = MLPPredictor(512, 64)
-        
+
         model = PerceiverRNN(pmodel, steering_classifier)
         trainer = PerceiverTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
     else:
@@ -243,7 +238,10 @@ def load_data(train_config):
     valid_paths = [dataset_path / dir_name for dir_name in data_dirs[3:4]]
 
     if train_config.model_type == "pilotnet":
-        train_dataset = NvidiaDataset(train_paths)
+        split_index = int(0.8 * len(data_dirs))
+        train_paths = [dataset_path / dir_name for dir_name in data_dirs[:split_index]]
+        valid_paths = [dataset_path / dir_name for dir_name in data_dirs[split_index:]]
+        train_dataset = NvidiaDataset(train_paths, transform=train_config.augment)
         valid_dataset = NvidiaDataset(valid_paths)
     elif train_config.model_type == "perceiver":
         train_dataset = NvidiaDatasetRNN(train_paths, train_config.seq_length, train_config.stride)
@@ -265,12 +263,29 @@ def load_data(train_config):
 
 def tune_hyperparameters(tune_hyperparameters_config):
     sweep_configuration = {
-        'method': 'random',
+        'method': 'bayes',
+        'name': 'sweep-demo',
         'metric': {'goal': 'minimize', 'name': 'valid_loss'},
         'parameters': {
-            'learning_rate': {'values': [1e-3, 1e-4, 1e-5]},
-            'batch_size': {'values': [8, 16, 32, 64, 128, 256, 512]},
-            'weight_decay': {'values': [1e-2, 1e-3, 1e-4]},
+            'learning_rate': {
+                'distribution': 'uniform',
+                'min': 1e-5,
+                'max': 1e-2,
+            },
+            'weight_decay': {
+                'distribution': 'uniform',
+                'min': 1e-4,
+                'max': 1e-1,
+            },
+            'batch_size': {'values': [128, 256, 512]},
+            'transform': [True, False]
+        },
+        'early_terminate': {
+            'type': 'hyperband',
+            's': 3,
+            'eta': 3,
+            'max_iter': tune_hyperparameters_config.max_epochs,
+            'strict': True,
         }
     }
 
