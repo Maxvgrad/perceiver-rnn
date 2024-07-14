@@ -281,10 +281,12 @@ def train(train_config):
         trainer = PilotNetTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
     elif train_config.model_type == ModelType.PERCEIVER:
         is_many_to_one = False
+        save_model = True
         target_name = 'steering_angle'
         if train_config.dataset_name == DatasetName.UCF_11:
             classifier_head = UcfClassPredictor(train_config.perceiver_latent_dim, 64)
             is_many_to_one = True
+            save_model = False
             target_name = 'n/a'
 
             def prepare_dataloader_data_fn_ucf(loader_data):
@@ -340,7 +342,8 @@ def train(train_config):
             is_many_to_one=is_many_to_one,
             model_name=train_config.model_name,
             wandb_project=train_config.wandb_project,
-            target_name=target_name
+            target_name=target_name,
+            save_model=save_model
         )
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
