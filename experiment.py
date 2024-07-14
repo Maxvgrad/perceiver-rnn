@@ -514,17 +514,7 @@ def tune_hyperparameters(tune_hyperparameters_config):
         'name': tune_hyperparameters_config.wandb_sweep_name,
         'metric': {'goal': 'minimize', 'name': 'valid_loss'},
         'parameters': {
-            'learning_rate': {
-                'distribution': 'uniform',
-                'min': 1e-4,
-                'max': 1e-2,
-            },
-            'weight_decay': {
-                'distribution': 'uniform',
-                'min': 1e-3,
-                'max': 1e-2,
-            },
-            'perceiver_num_latents': {'values': [11, 16, 32, 64, 128, 256, 512]},
+            'perceiver_num_latents': {'values': [11, 16, 32, 256, 512]},
             'perceiver_latent_dim': {'values': [64, 128, 256, 512]},
             'perceiver_depth': {'values': [1, 2]},
             'perceiver_cross_heads': {'values': [1, 2, 4, 8]},
