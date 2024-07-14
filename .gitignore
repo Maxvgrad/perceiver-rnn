@@ -1,6 +1,10 @@
 *.png
 *.jpg
+
+# Datasets
 rally-estonia-cropped-antialias
+UCF11_updated_mpg
+
 *.zip
 *.csv
 rally-estonia-full
