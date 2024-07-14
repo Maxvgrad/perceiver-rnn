@@ -13,6 +13,7 @@ from pytorchvideo.transforms import ApplyTransformToKey, ShortSideScale, Uniform
 from torch.nn import MSELoss, L1Loss, CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader, SequentialSampler
+from torcheval.metrics import MulticlassAccuracy
 
 import wandb
 from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
@@ -355,11 +356,13 @@ def train(train_config):
         is_many_to_one = False
         save_model = True
         target_name = 'steering_angle'
+        metric_multi_class_accuracy = None
         if train_config.dataset_name == DatasetName.UCF_11:
             classifier_head = UcfClassPredictor(train_config.perceiver_latent_dim, num_classes=11)
             is_many_to_one = True
             save_model = False
             target_name = 'n/a'
+            metric_multi_class_accuracy = MulticlassAccuracy()
 
             def prepare_dataloader_data_fn_ucf(loader_data):
                 data = loader_data
@@ -416,7 +419,8 @@ def train(train_config):
             model_name=train_config.model_name,
             wandb_project=train_config.wandb_project,
             target_name=target_name,
-            save_model=save_model
+            save_model=save_model,
+            metric_multi_class_accuracy=metric_multi_class_accuracy,
         )
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
