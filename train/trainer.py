@@ -121,8 +121,8 @@ class Trainer:
 
     # TODO: make fps optional
     def calculate_metrics(self, fps, predictions, valid_loader):
-        frames_df = valid_loader.dataset.frames
         if self.target_name == "steering_angle":
+            frames_df = valid_loader.dataset.frames
             true_steering_angles = frames_df.steering_angle.to_numpy()
             metrics = calculate_open_loop_metrics(predictions, true_steering_angles, fps=fps)
             left_turns = frames_df["turn_signal"] == 0
@@ -149,7 +149,7 @@ class Trainer:
             else:
                 metrics["right_mae"] = 0
         elif self.target_name == "n/a":
-            pass
+            metrics = {}
         else:
             logging.error(f"Unknown target name {self.target_name}")
             sys.exit()
@@ -362,10 +362,10 @@ class PerceiverTrainer(Trainer):
         return total_loss, result
     
     def calculate_metrics(self, fps, predictions, valid_loader):
-        sequence_ids = np.concatenate(valid_loader.dataset.sequence_ids)
-        frames_df = valid_loader.dataset.frames.loc[sequence_ids].reset_index(drop=True)
-        predictions = predictions.flatten('F')
         if self.target_name == "steering_angle":
+            sequence_ids = np.concatenate(valid_loader.dataset.sequence_ids)
+            frames_df = valid_loader.dataset.frames.loc[sequence_ids].reset_index(drop=True)
+            predictions = predictions.flatten('F')
             true_steering_angles = frames_df.steering_angle.to_numpy()
             metrics = calculate_open_loop_metrics(predictions, true_steering_angles, fps=fps)
             left_turns = frames_df["turn_signal"] == 0
@@ -391,8 +391,13 @@ class PerceiverTrainer(Trainer):
                 metrics["right_mae"] = right_metrics["mae"]
             else:
                 metrics["right_mae"] = 0
-
-
+        elif self.target_name == "n/a":
+            metrics = {}
+            metrics['whiteness'] = 0
+            metrics['mae'] = 0
+            metrics['left_mae'] = 0
+            metrics['straight_mae'] = 0
+            metrics['right_mae'] = 0
         else:
             logging.error(f"Unknown target name {self.target_name}")
             sys.exit()
