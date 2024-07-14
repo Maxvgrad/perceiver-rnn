@@ -2,17 +2,16 @@ import argparse
 import logging
 import sys
 
+import torch
 import wandb
-from einops import rearrange
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from torcheval.metrics import MulticlassAccuracy
 
 from datasets import build_dataset
 from datasets.dataset_name import DatasetName
 from models import build_model, build_criterion
 from models.model_type import ModelType
-from train.trainer import PerceiverTrainer, PilotNetTrainer
+from train import build_trainer
 
 
 def parse_arguments():
@@ -357,76 +356,36 @@ class TuneHyperparametersConfig(TrainingConfig):
             self.perceiver_self_per_cross_attn = config.perceiver_self_per_cross_attn
 
 
-def train(args, train_config):
+def train(args):
     train_loader, valid_loader = load_data(args)
-
     model = build_model(args)
-
-    if train_config.model_type == ModelType.PILOTNET:
-        trainer = PilotNetTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
-    elif train_config.model_type == ModelType.PERCEIVER:
-        is_many_to_one = False
-        save_model = True
-        target_name = 'steering_angle'
-        metric_multi_class_accuracy = None
-        if train_config.dataset_name == DatasetName.UCF_11:
-            is_many_to_one = True
-            save_model = False
-            target_name = 'n/a'
-            metric_multi_class_accuracy = MulticlassAccuracy()
-
-            def prepare_dataloader_data_fn_ucf(loader_data):
-                data = loader_data
-                inputs = rearrange(data['video'], 'b c t h w -> t b h w c')
-                target_values = data['label']
-                return inputs, target_values
-
-            prepare_dataloader_data_fn = prepare_dataloader_data_fn_ucf
-
-        elif train_config.dataset_name == DatasetName.RALLY_ESTONIA:
-
-            def prepare_dataloader_data_fn_rally_estonia(loader_data):
-                data, target_values, _ = loader_data
-                inputs = rearrange(data['image'], 'b t c h w -> t b h w c')  # (T, B, H, W, C)
-                target_values = rearrange(target_values, 'b t -> t b')  # (T, B)
-                return inputs, target_values
-
-            prepare_dataloader_data_fn = prepare_dataloader_data_fn_rally_estonia
-
-        else:
-            logging.error("Unsupported dataset.")
-            sys.exit()
-
-        trainer = PerceiverTrainer(
-            prepare_dataloader_data_fn=prepare_dataloader_data_fn,
-            is_many_to_one=is_many_to_one,
-            model_name=train_config.model_name,
-            wandb_project=train_config.wandb_project,
-            target_name=target_name,
-            save_model=save_model,
-            metric_multi_class_accuracy=metric_multi_class_accuracy,
-        )
-    else:
-        logging.error("Unknown model type: %s", train_config.model_type)
-        sys.exit()
-
+    trainer = build_trainer(args)
     criterion = build_criterion(args)
-    optimizer = AdamW(model.parameters(), lr=train_config.learning_rate, betas=(0.9, 0.999),
-                      eps=1e-08, weight_decay=train_config.weight_decay, amsgrad=False)
-
-    trainer.train(model, train_config.model_type, train_loader, valid_loader, optimizer, criterion,
-                  train_config.max_epochs, train_config.patience, train_config.learning_rate_patience, train_config.fps)
+    optimizer = AdamW(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.999),
+                      eps=1e-08, weight_decay=args.weight_decay, amsgrad=False)
+    trainer.train(model, args.model_type, train_loader, valid_loader, optimizer, criterion,
+                  args.max_epochs, args.patience, args.learning_rate_patience)
 
 
 def load_data(args):
     logging.info("Dataset %s reading from: %s", args.dataset, args.dataset_folder)
 
-    dataset_name = args.dataset.lower() if args.dataset is str else ''
+    dataset_name = args.dataset.lower() if args.dataset is not None else ''
 
     collate_fn = None
     if dataset_name == DatasetName.COCO_17.value:
         train_dataset = build_dataset(image_set='train', args=args)
         valid_dataset = build_dataset(image_set='val', args=args)
+
+        def collate_fn(batch):
+            import torch
+            images = [item[0] for item in batch]
+            targets = [item[1] for item in batch]
+            images = torch.stack(images, dim=0)
+            targets = targets
+            return images, targets
+
+        collate_fn = collate_fn
     elif dataset_name == DatasetName.UCF_11.value:
         train_dataset, valid_dataset = build_dataset(image_set=None, args=args)
     elif dataset_name == DatasetName.RALLY_ESTONIA.value:
@@ -476,9 +435,8 @@ def tune_hyperparameters(tune_hyperparameters_config):
     def sweep_train():
         with wandb.init(project=tune_hyperparameters_config.wandb_project):
             tune_hyperparameters_config.update(wandb.config)
-            train_conf = TrainingConfig(tune_hyperparameters_config)
-            train(wandb.config, train_conf)
-
+            # TODO: use args
+            train(wandb.config)
             logging.info(f'Finishing wandb.')
             wandb.finish()
 
@@ -490,13 +448,12 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     if args.mode == 'train':
-        config = TrainingConfig(args)
-        if config.wandb_project:
-            wandb.init(project=config.wandb_project, config=config.as_dict())
-        train(args, config)
-        if config.wandb_project:
+        if args.wandb_project:
+            wandb.init(project=args.wandb_project, config=args)
+        train(args)
+        if args.wandb_project:
             logging.info(f'Finishing wandb.')
             wandb.finish()
     elif args.mode == 'tune_hyperparameters':
         config = TuneHyperparametersConfig(args)
-        tune_hyperparameters(config)
+        tune_hyperparameters(args)

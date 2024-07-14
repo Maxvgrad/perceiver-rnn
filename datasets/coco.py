@@ -1,51 +1,66 @@
 from pathlib import Path
 
-import torch
 import torch.utils.data
 import torchvision.datasets
-import torchvision.transforms.v2 as T
+
 from torchvision.datasets import wrap_dataset_for_transforms_v2
+
+import torch
+import torch.utils.data
+
+from torchvision.transforms import v2
 
 
 class CocoDetection(torchvision.datasets.CocoDetection):
     def __init__(self, img_folder, ann_file, transforms):
-        super(CocoDetection, self).__init__(img_folder, ann_file, transforms)
+        super(CocoDetection, self).__init__(img_folder, ann_file, transforms=transforms)
 
     def __getitem__(self, idx):
         img, target = super(CocoDetection, self).__getitem__(idx)
+
+        if len(target) == 0:
+            # COCO dataset contains images with no annotations
+            # If so then provide empty target
+            target = [
+                {
+                    'segmentation': [], 'area': 0, 'iscrowd': 0,
+                    'image_id': idx, 'bbox': [0, 0, 0, 0], 'category_id': 0, 'id': 0
+                }
+            ]
+
         return img, target
 
 
 def make_coco_transforms(image_set):
-    normalize = T.Compose([
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    normalize = v2.Compose([
+        v2.ToTensor(),
+        v2.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
     if image_set == 'train':
-        return T.Compose([
-            T.ToImage(),
-            T.CenterCrop(224),
-            T.Resize(224),
-            T.SanitizeBoundingBoxes(),
-            T.ToDtype(torch.float32, scale=True),
+        return v2.Compose([
+            v2.ToImage(),
+            v2.CenterCrop(512),
+            v2.SanitizeBoundingBoxes(),
+            v2.ToDtype(torch.float32, scale=True),
             normalize,
         ])
 
     if image_set == 'val':
-        return T.Compose([
-            T.ToImage(),
-            T.CenterCrop(224),
-            T.Resize(224),
-            T.SanitizeBoundingBoxes(),
-            T.ToDtype(torch.float32, scale=True),
-            normalize,
-        ])
+        return v2.Compose(
+            [
+                v2.ToImage(),
+                v2.CenterCrop(512),
+                v2.SanitizeBoundingBoxes(),
+                v2.ToDtype(torch.float32, scale=True),
+                normalize
+            ]
+        )
 
     raise ValueError(f'unknown {image_set}')
 
 
-def build(image_set, args):
+def build(args, image_set):
     root = Path(args.dataset_folder)
     assert root.exists(), f'provided COCO path {root} does not exist'
     mode = 'instances'
@@ -56,5 +71,5 @@ def build(image_set, args):
 
     img_folder, ann_file = PATHS[image_set]
     dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(image_set))
-    dataset = wrap_dataset_for_transforms_v2(dataset)
+    dataset = wrap_dataset_for_transforms_v2(dataset, target_keys=("boxes", "labels"))
     return dataset
