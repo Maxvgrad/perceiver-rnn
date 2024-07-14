@@ -2,6 +2,7 @@ import argparse
 import logging
 import sys
 
+import torch
 import wandb
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
@@ -375,7 +376,15 @@ def load_data(args):
     if dataset_name == DatasetName.COCO_17.value:
         train_dataset = build_dataset(image_set='train', args=args)
         valid_dataset = build_dataset(image_set='val', args=args)
-        collate_fn = lambda batch: tuple(zip(*batch))
+
+        def collate_fn(batch):
+            images = [item[0] for item in batch]
+            targets = [item[1] for item in batch]
+            images = torch.stack(images, dim=0)
+            targets = targets
+            return images, targets
+
+        collate_fn = collate_fn
     elif dataset_name == DatasetName.UCF_11.value:
         train_dataset, valid_dataset = build_dataset(image_set=None, args=args)
     elif dataset_name == DatasetName.RALLY_ESTONIA.value:
