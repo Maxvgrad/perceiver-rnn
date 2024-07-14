@@ -281,9 +281,12 @@ def train(train_config):
         trainer = PilotNetTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
     elif train_config.model_type == ModelType.PERCEIVER:
         is_many_to_one = False
+        target_name = 'steering_angle'
         if train_config.dataset_name == DatasetName.UCF_11:
             classifier_head = UcfClassPredictor(train_config.perceiver_latent_dim, 64)
             is_many_to_one = True
+            target_name = 'n/a'
+
             def prepare_dataloader_data_fn_ucf(loader_data):
                 data = loader_data
                 inputs = rearrange(data['video'], 'b c t h w -> t b h w c')
@@ -336,7 +339,8 @@ def train(train_config):
             prepare_dataloader_data_fn=prepare_dataloader_data_fn,
             is_many_to_one=is_many_to_one,
             model_name=train_config.model_name,
-            wandb_project=train_config.wandb_project
+            wandb_project=train_config.wandb_project,
+            target_name=target_name
         )
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
@@ -368,7 +372,7 @@ def load_data(train_config):
     if train_config.dataset_name == DatasetName.UCF_11:
         logging.info("Dataset type: UCF11.")
         train_dataset, valid_dataset = Ucf11(
-            clip_sampler=make_clip_sampler('uniform', train_config.clip_duration),
+            clip_sampler=make_clip_sampler('random', train_config.clip_duration),
             video_sampler=SequentialSampler,
             data_path=train_config.dataset_folder,
             transform=torchvision.transforms.Compose(
@@ -382,7 +386,8 @@ def load_data(train_config):
                         ])),
                     UniformCropVideo(size=224),
                 ]
-            )
+            ),
+            dataset_proportion=train_config.dataset_proportion
         )
 
         collate_fn = None

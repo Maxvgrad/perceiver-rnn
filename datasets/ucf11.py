@@ -4,6 +4,7 @@ from pathlib import Path
 from random import shuffle
 from typing import Type, Optional, Callable, Dict, Any
 
+import numpy as np
 import torch
 from pytorchvideo.data import LabeledVideoDataset, ClipSampler
 from torch.utils.data import RandomSampler, Sampler
@@ -17,9 +18,10 @@ def Ucf11(
         video_path_prefix: str = "",
         decode_audio: bool = False,
         decoder: str = "pyav",
+        dataset_proportion: float = 1.0
 ) -> tuple[LabeledVideoDataset, LabeledVideoDataset]:
     """
-    A helper function to create ``LabeledVideoDataset`` object for the Ucf101 dataset.
+    A helper function to create ``LabeledVideoDataset`` object for the Ucf11 dataset.
 
     Args:
         data_path (str): Path to the data. The path type defines how the data
@@ -57,7 +59,6 @@ def Ucf11(
         if not data_path.exists():
             logging.error("Download ucf11 dataset is not supported.")
             sys.exit()
-            # download_and_unzip(_ucf11_url, root, False)
 
         # Collect all class names, scene folders, and label2id mapping
         classes = sorted(x.name for x in data_path.glob("*") if x.is_dir())
@@ -69,6 +70,9 @@ def Ucf11(
             scene_folders.extend(list(filter(Path.is_dir, class_folder.glob('v_*'))))
 
         shuffle(scene_folders)
+
+        keep_n_scenes = np.ceil(len(scene_folders) * dataset_proportion).astype(int)
+        scene_folders = scene_folders[:keep_n_scenes]
 
         num_train_scenes = int(0.8 * len(scene_folders))
         train_paths, val_paths = [], []
