@@ -39,17 +39,13 @@ def build_criterion(args):
         # https://github.com/facebookresearch/detr/issues/108#issuecomment-650269223
         num_classes = 91 #TODO: based on dataset
 
-        matcher = HungarianMatcher()
-
+        hungarian_matcher = HungarianMatcher()
         losses = ['labels', 'boxes', 'cardinality']
-
-        weight_dict = {'loss_ce': 1, 'loss_bbox': 5}
-        weight_dict['loss_giou'] = 2
-
+        weight_dict = {'loss_ce': 1, 'loss_bbox': 5, 'loss_giou': 2}
         return DetrLossCriterion(
             num_classes=num_classes,
-            matcher=matcher,
-            weights=weight_dict,
+            matcher=hungarian_matcher,
+            weight_dict=weight_dict,
             eos_coef=0.1,
             losses=losses
         )

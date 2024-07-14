@@ -1,6 +1,6 @@
 import torch
 import torchvision
-from einops.layers.chainer import Rearrange
+from einops.layers.torch import Rearrange
 
 
 def build_image_preprocess_backbone(args):

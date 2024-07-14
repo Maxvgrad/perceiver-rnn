@@ -2,14 +2,15 @@ from pathlib import Path
 
 import torch
 import torch.utils.data
+import torch.utils.data
 import torchvision.datasets
-import torchvision.transforms.v2 as T
 from torchvision.datasets import wrap_dataset_for_transforms_v2
+from torchvision.transforms import v2
 
 
 class CocoDetection(torchvision.datasets.CocoDetection):
     def __init__(self, img_folder, ann_file, transforms):
-        super(CocoDetection, self).__init__(img_folder, ann_file, transforms)
+        super(CocoDetection, self).__init__(img_folder, ann_file, transforms=transforms)
 
     def __getitem__(self, idx):
         img, target = super(CocoDetection, self).__getitem__(idx)
@@ -17,30 +18,33 @@ class CocoDetection(torchvision.datasets.CocoDetection):
 
 
 def make_coco_transforms(image_set):
-    normalize = T.Compose([
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    normalize = v2.Compose([
+        v2.ToTensor(),
+        v2.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
     if image_set == 'train':
-        return T.Compose([
-            T.ToImage(),
-            T.CenterCrop(224),
-            T.Resize(224),
-            T.SanitizeBoundingBoxes(),
-            T.ToDtype(torch.float32, scale=True),
+        return v2.Compose([
+            v2.ToImage(),
+            v2.CenterCrop(224),
+            v2.Resize(224),
+            v2.SanitizeBoundingBoxes(),
+            v2.ToDtype(torch.float32, scale=True),
             normalize,
         ])
 
     if image_set == 'val':
-        return T.Compose([
-            T.ToImage(),
-            T.CenterCrop(224),
-            T.Resize(224),
-            T.SanitizeBoundingBoxes(),
-            T.ToDtype(torch.float32, scale=True),
-            normalize,
-        ])
+      return v2.Compose(
+        [
+            v2.ToImage(),
+            v2.ToImage(),
+            v2.CenterCrop(224),
+            v2.Resize(224),
+            v2.SanitizeBoundingBoxes(),
+            v2.ToDtype(torch.float32, scale=True),
+            normalize
+        ]
+    )
 
     raise ValueError(f'unknown {image_set}')
 
