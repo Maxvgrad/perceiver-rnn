@@ -323,7 +323,7 @@ def load_data(train_config):
     if 'ucf11' in train_config.dataset_folder.lower():
         logging.info("Dataset type: UCF11.")
         train_dataset, valid_dataset = Ucf11(
-            clip_sampler=make_clip_sampler('random', train_config.clip_duration),
+            clip_sampler=make_clip_sampler('uniform', train_config.clip_duration),
             video_sampler=SequentialSampler,
             data_path=train_config.dataset_folder
         )
