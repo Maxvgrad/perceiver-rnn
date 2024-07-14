@@ -327,23 +327,38 @@ class TuneHyperparametersConfig(TrainingConfig):
         self.wandb_sweep_name = args.wandb_sweep_name
 
     def update(self, config):
-        self.learning_rate = config.learning_rate
-        self.batch_size = config.batch_size
-        self.weight_decay = config.weight_decay
-        self.augment = bool(config.augment)
-
-        self.perceiver_seq_length = config.perceiver_seq_length
-        self.perceiver_stride = config.perceiver_stride
-        self.perceiver_in_channels = config.perceiver_in_channels
-        self.perceiver_latent_dim = config.perceiver_latent_dim
-        self.perceiver_dropout = config.perceiver_dropout
-        self.perceiver_depth = config.perceiver_depth
-        self.perceiver_num_latents = config.perceiver_num_latents
-        self.perceiver_cross_heads = config.perceiver_cross_heads
-        self.perceiver_latent_heads = config.perceiver_latent_heads
-        self.perceiver_cross_dim_head = config.perceiver_cross_dim_head
-        self.perceiver_latent_dim_head = config.perceiver_latent_dim_head
-        self.perceiver_self_per_cross_attn = config.perceiver_self_per_cross_attn
+        if hasattr(config, 'learning_rate'):
+            self.learning_rate = config.learning_rate
+        if hasattr(config, 'batch_size'):
+            self.batch_size = config.batch_size
+        if hasattr(config, 'weight_decay'):
+            self.weight_decay = config.weight_decay
+        if hasattr(config, 'augment'):
+            self.augment = bool(config.augment)
+        if hasattr(config, 'perceiver_seq_length'):
+            self.perceiver_seq_length = config.perceiver_seq_length
+        if hasattr(config, 'perceiver_stride'):
+            self.perceiver_stride = config.perceiver_stride
+        if hasattr(config, 'perceiver_in_channels'):
+            self.perceiver_in_channels = config.perceiver_in_channels
+        if hasattr(config, 'perceiver_latent_dim'):
+            self.perceiver_latent_dim = config.perceiver_latent_dim
+        if hasattr(config, 'perceiver_dropout'):
+            self.perceiver_dropout = config.perceiver_dropout
+        if hasattr(config, 'perceiver_depth'):
+            self.perceiver_depth = config.perceiver_depth
+        if hasattr(config, 'perceiver_num_latents'):
+            self.perceiver_num_latents = config.perceiver_num_latents
+        if hasattr(config, 'perceiver_cross_heads'):
+            self.perceiver_cross_heads = config.perceiver_cross_heads
+        if hasattr(config, 'perceiver_latent_heads'):
+            self.perceiver_latent_heads = config.perceiver_latent_heads
+        if hasattr(config, 'perceiver_cross_dim_head'):
+            self.perceiver_cross_dim_head = config.perceiver_cross_dim_head
+        if hasattr(config, 'perceiver_latent_dim_head'):
+            self.perceiver_latent_dim_head = config.perceiver_latent_dim_head
+        if hasattr(config, 'perceiver_self_per_cross_attn'):
+            self.perceiver_self_per_cross_attn = config.perceiver_self_per_cross_attn
 
 
 def train(train_config):
