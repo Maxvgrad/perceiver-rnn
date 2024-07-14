@@ -15,6 +15,36 @@ path/to/coco/
   val2017/      # val images
 ```
 
+## Training
+
+```shell
+python experiment.py \
+  --mode train \
+  --model-type perceiver \
+  --model-name perceiver_object_detection \
+  --loss detr \
+  --dataset-folder /path/coco17 \
+  --dataset coco17 \
+  --wandb-project wandb-train-perceiver-v1 \
+  --batch-size 64 \
+  --num-workers 1 \
+  --learning-rate 0.001 \
+  --weight-decay 0.03 \
+  --learning-rate-patience 10 \
+  --patience 3 \
+  --max-epochs 10 \
+  --perceiver-img-pre-type resnet18 \
+  --perceiver-in-channels 512 \
+  --perceiver-latent-dim 128 \
+  --perceiver-num-latents 128 \
+  --perceiver-depth 1 \
+  --perceiver-cross-heads 1 \
+  --perceiver-latent-heads 1 \
+  --perceiver-cross-dim-head 1 \
+  --perceiver-latent-dim-head 1 \
+  --perceiver-self-per-cross-attn 1
+```
+
 # Usage - Regression
 
 ### Evaluation 

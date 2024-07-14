@@ -2,12 +2,12 @@ import argparse
 import logging
 import sys
 
+import wandb
 from einops import rearrange
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torcheval.metrics import MulticlassAccuracy
 
-import wandb
 from datasets import build_dataset
 from datasets.dataset_name import DatasetName
 from models import build_model, build_criterion
@@ -42,7 +42,7 @@ def parse_arguments():
     argparser.add_argument(
         '--loss',
         required=False,
-        choices=['mse', 'mae', 'ce'],
+        choices=['detr', 'mse', 'mae', 'ce'],
         default='mse',
         help='Loss function used for training.'
     )
