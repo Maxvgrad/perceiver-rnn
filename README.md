@@ -3,6 +3,12 @@ Perceiver autoregressive
 
 # Usage - Object detection
 
+## Environment setup
+
+```shell
+pip install -U 'git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI'
+```
+
 ## Data preparation
 
 Download and extract COCO 2017 train and val images with annotations from
