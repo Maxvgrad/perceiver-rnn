@@ -269,15 +269,15 @@ def tune_hyperparameters(tune_hyperparameters_config):
         'parameters': {
             'learning_rate': {
                 'distribution': 'uniform',
-                'min': 1e-5,
-                'max': 1e-2,
+                'min': 1e-4,
+                'max': 1e-3,
             },
             'weight_decay': {
                 'distribution': 'uniform',
-                'min': 1e-4,
-                'max': 1e-1,
+                'min': 5e-3,
+                'max': 5e-2,
             },
-            'batch_size': {'values': [128, 256, 512]},
+            'batch_size': {'values': [256, 512]},
             'augment': {'values': [0, 1]},
         },
         'early_terminate': {
