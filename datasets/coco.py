@@ -7,6 +7,8 @@ import torchvision.datasets
 from torchvision.datasets import wrap_dataset_for_transforms_v2
 from torchvision.transforms import v2
 
+from datasets.transforms import NormalizeBoxes
+
 
 class CocoDetection(torchvision.datasets.CocoDetection):
     def __init__(self, img_folder, ann_file, transforms):
@@ -54,6 +56,8 @@ class CocoDetectionDecorator(torchvision.datasets.CocoDetection):
 def make_coco_transforms(image_set):
     normalize = v2.Compose([
         v2.ToTensor(),
+        v2.ConvertBoundingBoxFormat(format='XYXY'),
+        NormalizeBoxes(),
         v2.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
