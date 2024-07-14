@@ -17,6 +17,7 @@ def build_trainer(args):
         save_model = True
         target_name = 'steering_angle'
         metric_multi_class_accuracy = None
+        prepare_dataloader_data_fn = None
         if args.dataset == DatasetName.UCF_11.value:
             is_many_to_one = True
             save_model = False
@@ -41,12 +42,22 @@ def build_trainer(args):
 
             prepare_dataloader_data_fn = prepare_dataloader_data_fn_rally_estonia
 
-        return Trainer(
+        elif args.dataset == DatasetName.COCO_17.value:
+            return Trainer(
+                model_name=args.model_name,
+                wandb_project=args.wandb_project,
+                target_name=target_name,
+                save_model=save_model,
+                metric_multi_class_accuracy=metric_multi_class_accuracy,
+            )
+
+        return PerceiverTrainer(
             model_name=args.model_name,
             wandb_project=args.wandb_project,
             target_name=target_name,
             save_model=save_model,
             metric_multi_class_accuracy=metric_multi_class_accuracy,
+            prepare_dataloader_data_fn=prepare_dataloader_data_fn
         )
     else:
         logging.error("Unknown model type: %s", args.model_type)
