@@ -22,7 +22,6 @@ def build_image_preprocess_backbone(args):
         resnet18.eval()
         resnet18.requires_grad_(requires_grad=False)
         return torch.nn.Sequential(
-            Rearrange('b h w c ->  b c h w'),
             resnet18.conv1,
             resnet18.bn1,
             resnet18.relu,
@@ -32,7 +31,7 @@ def build_image_preprocess_backbone(args):
             resnet18.layer3,
             resnet18.layer4,
             resnet18.avgpool,
-            Rearrange('b c h w -> b h w c'),
+            Rearrange('b c h w -> b h w c'), # Perceiver's expected output
         )
     else:
         return torch.nn.Identity()
