@@ -22,16 +22,12 @@ class MLPPredictor(nn.Module):
 
 
 class UcfClassPredictor(nn.Module):
-    def __init__(self, latent_dim, hidden_dim, num_classes=11):
+    def __init__(self, latent_dim, num_classes):
         super().__init__()
         self.linear_stack = nn.Sequential(
             Reduce('b n d -> b d', 'mean'),
             nn.LayerNorm(latent_dim),
-            nn.Linear(latent_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, num_classes),
+            nn.Linear(latent_dim, num_classes),
             nn.Softmax(dim=1),
         )
 
