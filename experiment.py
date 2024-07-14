@@ -44,7 +44,7 @@ def parse_arguments():
         '--loss',
         required=False,
         choices=['mse', 'mae'],
-        default='mae',
+        default='mse',
         help='Loss function used for training.'
     )
 
@@ -106,7 +106,7 @@ def parse_arguments():
         '--learning-rate-patience',
         type=int,
         default=10,
-        help="Num of epochs after with learning rate will be retuced by factor of 0.1."
+        help="Num of epochs after with learning rate will be reduced by factor of 0.1."
     )
 
     argparser.add_argument(

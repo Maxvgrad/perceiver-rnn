@@ -3,7 +3,7 @@
 #SBATCH --time=04:00:00 # set an appropriate amount of time for the job to run here in HH:MM:SS format
 #SBATCH --partition=gpu # set the partition to gpu
 #SBATCH --gres=gpu:tesla:1 # assign a single tesla gpu
-#SBATCH --output=slurm/slurm_%x.%j.out # STDOUT
+#SBATCH --output=slurm/%j_slurm_%x.out # STDOUT
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=4
 
