@@ -1,6 +1,8 @@
 import argparse
+import copy
 import logging
 import sys
+from collections import namedtuple
 
 import wandb
 from torch.optim import AdamW
@@ -10,7 +12,6 @@ from datasets import build_dataset
 from datasets.dataset_name import DatasetName
 from metrics import get_build_evaluators_fn
 from models import build_model, build_criterion, build_postprocessors
-from models.model_type import ModelType
 from train import build_trainer
 
 
@@ -242,120 +243,6 @@ def parse_arguments():
     return argparser.parse_args()
 
 
-class TrainingConfig:
-    def __init__(self, args):
-        self.model_type = ModelType[args.model_type.upper()]
-        self.model_name = args.model_name
-        self.loss = args.loss
-        self.dataset_folder = args.dataset_folder
-        self.dataset_proportion = args.dataset_proportion
-        if 'ucf11' in args.dataset_folder.lower():
-            self.dataset_name = DatasetName.UCF_11
-        else:
-            self.dataset_name = DatasetName.RALLY_ESTONIA
-        self.seed = args.seed
-        self.batch_size = args.batch_size
-        self.num_workers = args.num_workers
-        self.weight_decay = args.weight_decay
-        self.learning_rate = args.learning_rate
-        self.learning_rate_patience = args.learning_rate_patience
-        self.wandb_project = args.wandb_project
-        self.max_epochs = args.max_epochs
-        self.patience = args.patience
-        self.augment = bool(args.augment)
-        self.fps = 30
-        self.clip_duration = args.clip_duration
-
-        self.perceiver_seq_length = args.perceiver_seq_length
-        self.perceiver_stride = args.perceiver_stride
-        self.perceiver_img_pre_type = args.perceiver_img_pre_type
-        self.perceiver_in_channels = args.perceiver_in_channels
-        self.perceiver_latent_dim = args.perceiver_latent_dim
-        self.perceiver_dropout = args.perceiver_dropout
-        self.perceiver_depth = args.perceiver_depth
-        self.perceiver_num_latents = args.perceiver_num_latents
-        self.perceiver_cross_heads = args.perceiver_cross_heads
-        self.perceiver_latent_heads = args.perceiver_latent_heads
-        self.perceiver_cross_dim_head = args.perceiver_cross_dim_head
-        self.perceiver_latent_dim_head = args.perceiver_latent_dim_head
-        self.perceiver_self_per_cross_attn = args.perceiver_self_per_cross_attn
-
-    def as_dict(self):
-        return {
-            'model_type': self.model_type,
-            'model_name': self.model_name,
-            'loss': self.loss,
-            'dataset_folder': self.dataset_folder,
-            'dataset_name': self.dataset_name,
-            'dataset_proportion': self.dataset_proportion,
-            'seed': self.seed,
-            'batch_size': self.batch_size,
-            'num_workers': self.num_workers,
-            'weight_decay': self.weight_decay,
-            'learning_rate': self.learning_rate,
-            'learning_rate_patience': self.learning_rate_patience,
-            'wandb_project': self.wandb_project,
-            'max_epochs': self.max_epochs,
-            'patience': self.patience,
-            'augment': self.augment,
-            'fps': self.fps,
-            'clip_duration': self.clip_duration,
-            'perceiver_seq_length': self.perceiver_seq_length,
-            'perceiver_stride': self.perceiver_stride,
-            'perceiver_img_pre_type': self.perceiver_img_pre_type,
-            'perceiver_in_channels': self.perceiver_in_channels,
-            'perceiver_num_latents': self.perceiver_num_latents,
-            'perceiver_latent_dim': self.perceiver_latent_dim,
-            'perceiver_dropout': self.perceiver_dropout,
-            'perceiver_depth': self.perceiver_depth,
-            'perceiver_cross_heads': self.perceiver_cross_heads,
-            'perceiver_latent_heads': self.perceiver_latent_heads,
-            'perceiver_cross_dim_head': self.perceiver_cross_dim_head,
-            'perceiver_latent_dim_head': self.perceiver_latent_dim_head,
-            'perceiver_self_per_cross_attn': self.perceiver_self_per_cross_attn,
-        }
-
-
-class TuneHyperparametersConfig(TrainingConfig):
-    def __init__(self, args):
-        super().__init__(args)
-        self.wandb_sweep_name = args.wandb_sweep_name
-
-    def update(self, config):
-        if hasattr(config, 'learning_rate'):
-            self.learning_rate = config.learning_rate
-        if hasattr(config, 'batch_size'):
-            self.batch_size = config.batch_size
-        if hasattr(config, 'weight_decay'):
-            self.weight_decay = config.weight_decay
-        if hasattr(config, 'augment'):
-            self.augment = bool(config.augment)
-        if hasattr(config, 'perceiver_seq_length'):
-            self.perceiver_seq_length = config.perceiver_seq_length
-        if hasattr(config, 'perceiver_stride'):
-            self.perceiver_stride = config.perceiver_stride
-        if hasattr(config, 'perceiver_in_channels'):
-            self.perceiver_in_channels = config.perceiver_in_channels
-        if hasattr(config, 'perceiver_latent_dim'):
-            self.perceiver_latent_dim = config.perceiver_latent_dim
-        if hasattr(config, 'perceiver_dropout'):
-            self.perceiver_dropout = config.perceiver_dropout
-        if hasattr(config, 'perceiver_depth'):
-            self.perceiver_depth = config.perceiver_depth
-        if hasattr(config, 'perceiver_num_latents'):
-            self.perceiver_num_latents = config.perceiver_num_latents
-        if hasattr(config, 'perceiver_cross_heads'):
-            self.perceiver_cross_heads = config.perceiver_cross_heads
-        if hasattr(config, 'perceiver_latent_heads'):
-            self.perceiver_latent_heads = config.perceiver_latent_heads
-        if hasattr(config, 'perceiver_cross_dim_head'):
-            self.perceiver_cross_dim_head = config.perceiver_cross_dim_head
-        if hasattr(config, 'perceiver_latent_dim_head'):
-            self.perceiver_latent_dim_head = config.perceiver_latent_dim_head
-        if hasattr(config, 'perceiver_self_per_cross_attn'):
-            self.perceiver_self_per_cross_attn = config.perceiver_self_per_cross_attn
-
-
 def train(args):
     train_loader, valid_loader = load_data(args)
     model = build_model(args)
@@ -408,41 +295,53 @@ def load_data(args):
     return train_loader, valid_loader
 
 
-def tune_hyperparameters(tune_hyperparameters_config):
+def tune_hyperparameters(args):
     sweep_configuration = {
         'method': 'random',
-        'name': tune_hyperparameters_config.wandb_sweep_name,
+        'name': args.wandb_sweep_name,
         'metric': {'goal': 'minimize', 'name': 'valid_loss'},
         'parameters': {
-            'perceiver_num_latents': {'values': [11, 16, 32, 256, 512]},
-            'perceiver_latent_dim': {'values': [64, 128, 256, 512]},
+            'perceiver_num_latents': {'values': [64, 128]},
+            'perceiver_latent_dim': {'values': [32, 64, 128]},
             'perceiver_depth': {'values': [1, 2]},
             'perceiver_cross_heads': {'values': [1, 2, 4, 8]},
-            'perceiver_latent_heads': {'values': [2, 4, 8]},
-            'perceiver_cross_dim_head': {'values': [32, 64, 128]},
-            'perceiver_latent_dim_head': {'values': [32, 64, 128]},
+            'perceiver_latent_heads': {'values': [1, 2, 4, 8]},
             'perceiver_self_per_cross_attn': {'values': [1, 2, 4]}
         },
         'early_terminate': {
             'type': 'hyperband',
             's': 3,
             'eta': 3,
-            'max_iter': tune_hyperparameters_config.max_epochs,
+            'max_iter': 5,
             'strict': True,
         }
     }
 
-    sweep_id = wandb.sweep(sweep=sweep_configuration, project=tune_hyperparameters_config.wandb_project)
+    sweep_id = wandb.sweep(sweep=sweep_configuration, project=args.wandb_project)
 
     def sweep_train():
-        with wandb.init(project=tune_hyperparameters_config.wandb_project):
-            tune_hyperparameters_config.update(wandb.config)
-            # TODO: use args
-            train(wandb.config)
+        with wandb.init(project=args.wandb_project):
+
+            wandb_config_copy = copy.deepcopy(wandb.config)
+
+            wandb_config_copy['perceiver_cross_dim_head'] = args.perceiver_in_channels // wandb_config_copy['perceiver_cross_heads']
+            wandb_config_copy['perceiver_latent_dim_head'] = wandb_config_copy['perceiver_latent_dim'] // wandb_config_copy['perceiver_latent_heads']
+
+            new_args = merge_args_with_wandb_config(args, wandb_config_copy)
+
+            train(new_args)
             logging.info(f'Finishing wandb.')
             wandb.finish()
 
     wandb.agent(sweep_id, function=sweep_train)
+
+
+def merge_args_with_wandb_config(args, wandb_config):
+    args_dict = vars(args)  # Convert Namespace to a dictionary
+    for key, value in wandb_config.items():
+        if key in args_dict:
+            args_dict[key] = value
+    return namedtuple('Args', args_dict.keys())(*args_dict.values())
 
 
 if __name__ == "__main__":
@@ -457,5 +356,4 @@ if __name__ == "__main__":
             logging.info(f'Finishing wandb.')
             wandb.finish()
     elif args.mode == 'tune_hyperparameters':
-        config = TuneHyperparametersConfig(args)
         tune_hyperparameters(args)
