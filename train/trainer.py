@@ -358,7 +358,7 @@ class PerceiverTrainer(Trainer):
                 batch_count += 1
 
         total_loss = epoch_loss / batch_count
-        result = np.concatenate(all_predictions, axis=1)
+        result = all_predictions # np.concatenate(all_predictions, axis=1) TODO: fix for rally
         return total_loss, result
     
     def calculate_metrics(self, fps, predictions, valid_loader):
