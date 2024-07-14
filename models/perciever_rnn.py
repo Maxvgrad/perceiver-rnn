@@ -1,6 +1,7 @@
-from torch import nn
 import torch
 from einops.layers.torch import Reduce, Rearrange
+from torch import nn
+
 
 class MLPPredictor(nn.Module):
     def __init__(self, latent_dim, hidden_dim):
@@ -18,6 +19,7 @@ class MLPPredictor(nn.Module):
     def forward(self, x):
         return self.linear_stack(x)
 
+
 class PerceiverRNN(nn.Module):
     def __init__(self, perceiver, classifier_head, preprocess='None'):
         super().__init__()
@@ -33,6 +35,24 @@ class PerceiverRNN(nn.Module):
                 torch.nn.Conv2d(10, 10, 3),
                 torch.nn.ReLU(),
                 torch.nn.MaxPool2d(kernel_size=2),
+                Rearrange('b c h w -> b h w c'),
+            )
+        elif preprocess == 'resnet18':
+            resnet18 = torch.hub.load('pytorch/vision', 'resnet18', pretrained=True)
+            # https://pytorch.org/docs/stable/notes/autograd.html#locally-disabling-gradient-computation
+            resnet18.eval()
+            resnet18.requires_grad_(requires_grad=False)
+            self.image_preprocess = torch.nn.Sequential(
+                Rearrange('b h w c ->  b c h w'),
+                resnet18.conv1,
+                resnet18.bn1,
+                resnet18.relu,
+                resnet18.maxpool,
+                resnet18.layer1,
+                resnet18.layer2,
+                resnet18.layer3,
+                resnet18.layer4,
+                resnet18.avgpool,
                 Rearrange('b c h w -> b h w c'),
             )
         else:
