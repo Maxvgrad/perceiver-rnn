@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Modifications copyright (C) 2024 Maksim Ploter
+import logging
 
 import torch
 import torch.nn.functional as F
@@ -20,6 +19,9 @@ from torch import nn
 
 from utils import box_ops
 from utils.misc import accuracy, is_dist_avail_and_initialized, get_world_size
+
+
+# Modifications copyright (C) 2024 Maksim Ploter
 
 
 class DetrLossCriterion(nn.Module):
@@ -163,6 +165,9 @@ class DetrLossCriterion(nn.Module):
                     l_dict = self.get_loss(loss, aux_outputs, targets, indices, num_boxes, **kwargs)
                     l_dict = {k + f'_{i}': v for k, v in l_dict.items()}
                     losses.update(l_dict)
+
+        loss_breakdown = ' | '.join([f'{k}_unscaled: {v}' for k, v in losses.items()])
+        logging.debug(loss_breakdown)
 
         weight_dict = self.weight_dict
         loss_sum = sum(losses[k] * weight_dict[k] for k in losses.keys() if k in weight_dict)
