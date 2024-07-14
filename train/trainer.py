@@ -1,5 +1,4 @@
 import logging
-import sys
 from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
@@ -12,22 +11,19 @@ from einops import rearrange
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
 
-from metrics.metrics import calculate_open_loop_metrics
 from models.model_type import ModelType
 from utils.model_utils import count_parameters, count_all_parameters
 
 
 class Trainer:
 
-    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None, target_name="steering_angle",
-                 save_model=False, metric_multi_class_accuracy=None):
+    def __init__(self, model_name=None, n_conditional_branches=1, wandb_project=None, save_model=False):
         if torch.cuda.is_available():
             logging.info("Using CUDA")
             self.device = torch.device("cuda")
         else:
             logging.info("Using CPU")
             self.device = torch.device('cpu')
-        self.target_name = target_name
         self.n_conditional_branches = n_conditional_branches
         self.wandb_logging = False
         self.save_model = save_model # TODO replace with callback
@@ -41,12 +37,9 @@ class Trainer:
             self.save_dir.mkdir(parents=True, exist_ok=False)
         self.train_batch_count = None
         self.valid_batch_count = None
-        self.metric_multi_class_accuracy = None
-        if metric_multi_class_accuracy:
-            self.metric_multi_class_accuracy = metric_multi_class_accuracy.to(self.device)
 
-    def train(self, model, model_type, train_loader, valid_loader, optimizer, criterion, n_epoch,
-              patience=10, lr_patience=10, fps=30):
+    def train(self, model, model_type, train_loader, valid_loader, optimizer, criterion, postprocessors,
+              build_evaluators_fn, n_epoch, patience=10, lr_patience=10):
 
         model = model.to(self.device)
         criterion = criterion.to(self.device)
@@ -81,7 +74,8 @@ class Trainer:
             train_loss = self.train_epoch(model, train_loader, optimizer, criterion, progress_bar, epoch)
 
             progress_bar.reset(total=self.valid_batch_count)
-            valid_loss, predictions = self.evaluate(model, valid_loader, criterion, progress_bar, epoch, train_loss)
+            valid_loss, val_stats = self.evaluate(model, valid_loader, criterion, build_evaluators_fn(),
+                                                  postprocessors, progress_bar, epoch, train_loss)
 
             scheduler.step(valid_loss)
 
@@ -96,26 +90,14 @@ class Trainer:
                 epochs_of_no_improve += 1
                 best_loss_marker = ''
 
-            metrics = self.calculate_metrics(fps, predictions, valid_loader)
+            metrics = val_stats
 
-            whiteness = metrics['whiteness']
-            mae = metrics['mae']
-            left_mae = metrics['left_mae']
-            straight_mae = metrics['straight_mae']
-            right_mae = metrics['right_mae']
-            accuracy = 0.0
-            if 'accuracy' in metrics:
-                accuracy = metrics['accuracy']
+            log_stats_str = ' | '.join([f'{k}: {v}' for k, v in val_stats.items()])
 
             progress_bar.set_description(f'{best_loss_marker}epoch {epoch + 1}/{n_epoch}'
                                          f' | train loss: {train_loss:.4f}'
                                          f' | valid loss: {valid_loss:.4f}'
-                                         f' | accuracy: {accuracy:.4f}'
-                                         f' | whiteness: {whiteness:.4f}'
-                                         f' | mae: {mae:.4f}'
-                                         f' | l_mae: {left_mae:.4f}'
-                                         f' | s_mae: {straight_mae:.4f}'
-                                         f' | r_mae: {right_mae:.4f}'
+                                         f' | {log_stats_str}'
                                          )
 
             if self.wandb_logging:
@@ -131,43 +113,6 @@ class Trainer:
         self.save_models(model, valid_loader)
 
         return best_valid_loss
-
-    # TODO: make fps optional
-    def calculate_metrics(self, fps, predictions, valid_loader):
-        if self.target_name == "steering_angle":
-            frames_df = valid_loader.dataset.frames
-            true_steering_angles = frames_df.steering_angle.to_numpy()
-            metrics = calculate_open_loop_metrics(predictions, true_steering_angles, fps=fps)
-            left_turns = frames_df["turn_signal"] == 0
-            if left_turns.any():
-                left_metrics = calculate_open_loop_metrics(predictions[left_turns], true_steering_angles[left_turns],
-                                                           fps=fps)
-                metrics["left_mae"] = left_metrics["mae"]
-            else:
-                metrics["left_mae"] = 0
-
-            straight = frames_df["turn_signal"] == 1
-            if straight.any():
-                straight_metrics = calculate_open_loop_metrics(predictions[straight], true_steering_angles[straight],
-                                                               fps=fps)
-                metrics["straight_mae"] = straight_metrics["mae"]
-            else:
-                metrics["straight_mae"] = 0
-
-            right_turns = frames_df["turn_signal"] == 2
-            if right_turns.any():
-                right_metrics = calculate_open_loop_metrics(predictions[right_turns], true_steering_angles[right_turns],
-                                                            fps=fps)
-                metrics["right_mae"] = right_metrics["mae"]
-            else:
-                metrics["right_mae"] = 0
-        elif self.target_name == "n/a":
-            metrics = {}
-        else:
-            logging.error(f"Unknown target name {self.target_name}")
-            sys.exit()
-
-        return metrics
 
     def save_models(self, model, valid_loader):
         if not self.save_model:
@@ -244,23 +189,30 @@ class Trainer:
     def predict(self, model, dataloader):
         pass
 
-    def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
+    def evaluate(self, model, iterator, criterion, evaluators, postprocessors, progress_bar, epoch, train_loss):
         epoch_loss = 0.0
         model.eval()
-        all_predictions = []
+        batch_count = 0
+        stats = {}
 
         with torch.no_grad():
-            for i, (data, target_values, condition_mask) in enumerate(iterator):
-                predictions, loss = self.train_batch(model, criterion, (data, target_values, condition_mask))
+            for i, loader_data in enumerate(iterator):
+                predictions, loss = self.train_batch(model, criterion, loader_data)
                 epoch_loss += loss.item()
-                all_predictions.extend(predictions.cpu().squeeze().numpy())
 
                 progress_bar.update(1)
                 progress_bar.set_description(f'epoch {epoch + 1} | train loss: {train_loss:.4f} | valid loss: {(epoch_loss / (i + 1)):.4f}')
+                batch_count += 1
 
-        total_loss = epoch_loss / len(iterator)
-        result = np.array(all_predictions)
-        return total_loss, result
+                for evaluator in evaluators:
+                    evaluator.update(postprocessors, loader_data, predictions)
+
+        for evaluator in evaluators:
+            evaluator.fill_stats(stats)
+
+        self.valid_batch_count = batch_count
+        total_loss = epoch_loss / batch_count
+        return total_loss, stats
 
 
 def dataset_len(dataloader):
@@ -298,10 +250,9 @@ class PilotNetTrainer(Trainer):
 class PerceiverTrainer(Trainer):
 
     def __init__(self, prepare_dataloader_data_fn, is_many_to_one=False, model_name=None,
-                 n_conditional_branches=1, wandb_project=None, target_name='steering_angle',
-                 save_model=False, metric_multi_class_accuracy=None
+                 n_conditional_branches=1, wandb_project=None, save_model=False
                  ):
-        super().__init__(model_name, n_conditional_branches, wandb_project, target_name, save_model, metric_multi_class_accuracy)
+        super().__init__(model_name, n_conditional_branches, wandb_project, save_model)
         self.prepare_dataloader_data_fn = prepare_dataloader_data_fn
         self.is_many_to_one = is_many_to_one
 
@@ -360,71 +311,3 @@ class PerceiverTrainer(Trainer):
     
     def create_onxx_input(self, data):
         return rearrange(data[0]['image'], 'b t c h w -> t b h w c')[0].to(self.device)
-    
-    def evaluate(self, model, iterator, criterion, progress_bar, epoch, train_loss):
-        epoch_loss = 0.0
-        batch_count = 0
-        model.eval()
-        all_predictions = []
-
-        with torch.no_grad():
-            for i, loader_data in enumerate(iterator):
-                predictions, loss = self.train_batch(model, criterion, loader_data)
-                epoch_loss += loss.item()
-                all_predictions.append(predictions.cpu().numpy().squeeze())
-
-                if self.metric_multi_class_accuracy:
-                    self.metric_multi_class_accuracy.update(
-                        predictions.squeeze(), loader_data['label']
-                    )
-                progress_bar.update(1)
-                progress_bar.set_description(f'epoch {epoch + 1} | train loss: {train_loss:.4f} | valid loss: {(epoch_loss / (i + 1)):.4f}')
-                batch_count += 1
-        self.valid_batch_count = batch_count
-        total_loss = epoch_loss / batch_count
-        result = all_predictions # np.concatenate(all_predictions, axis=1) TODO: fix for rally
-        return total_loss, result
-    
-    def calculate_metrics(self, fps, predictions, valid_loader):
-        if self.target_name == "steering_angle":
-            sequence_ids = np.concatenate(valid_loader.dataset.sequence_ids)
-            frames_df = valid_loader.dataset.frames.loc[sequence_ids].reset_index(drop=True)
-            predictions = predictions.flatten('F')
-            true_steering_angles = frames_df.steering_angle.to_numpy()
-            metrics = calculate_open_loop_metrics(predictions, true_steering_angles, fps=fps)
-            left_turns = frames_df["turn_signal"] == 0
-            if left_turns.any():
-                left_metrics = calculate_open_loop_metrics(predictions[left_turns], true_steering_angles[left_turns],
-                                                           fps=fps)
-                metrics["left_mae"] = left_metrics["mae"]
-            else:
-                metrics["left_mae"] = 0
-
-            straight = frames_df["turn_signal"] == 1
-            if straight.any():
-                straight_metrics = calculate_open_loop_metrics(predictions[straight], true_steering_angles[straight],
-                                                               fps=fps)
-                metrics["straight_mae"] = straight_metrics["mae"]
-            else:
-                metrics["straight_mae"] = 0
-
-            right_turns = frames_df["turn_signal"] == 2
-            if right_turns.any():
-                right_metrics = calculate_open_loop_metrics(predictions[right_turns], true_steering_angles[right_turns],
-                                                            fps=fps)
-                metrics["right_mae"] = right_metrics["mae"]
-            else:
-                metrics["right_mae"] = 0
-        elif self.target_name == "n/a":
-            metrics = {}
-            metrics['accuracy'] = self.metric_multi_class_accuracy.compute().item()
-            metrics['whiteness'] = 0
-            metrics['mae'] = 0
-            metrics['left_mae'] = 0
-            metrics['straight_mae'] = 0
-            metrics['right_mae'] = 0
-        else:
-            logging.error(f"Unknown target name {self.target_name}")
-            sys.exit()
-
-        return metrics
