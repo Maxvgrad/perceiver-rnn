@@ -1,4 +1,5 @@
 import torch
+import torchvision
 from einops.layers.torch import Reduce, Rearrange
 from torch import nn
 
@@ -38,7 +39,7 @@ class PerceiverRNN(nn.Module):
                 Rearrange('b c h w -> b h w c'),
             )
         elif preprocess == 'resnet18':
-            resnet18 = torch.hub.load('pytorch/vision', 'resnet18', pretrained=True)
+            resnet18 = torchvision.models.resnet18(pretrained=True)
             # https://pytorch.org/docs/stable/notes/autograd.html#locally-disabling-gradient-computation
             resnet18.eval()
             resnet18.requires_grad_(requires_grad=False)
