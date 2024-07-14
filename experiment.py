@@ -378,6 +378,7 @@ def load_data(args):
         valid_dataset = build_dataset(image_set='val', args=args)
 
         def collate_fn(batch):
+            import torch
             images = [item[0] for item in batch]
             targets = [item[1] for item in batch]
             images = torch.stack(images, dim=0)
