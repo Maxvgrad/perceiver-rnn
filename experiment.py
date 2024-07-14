@@ -6,19 +6,21 @@ import sys
 from pathlib import Path
 
 import torchvision
+from einops import rearrange
 from pytorchvideo.data import make_clip_sampler
 from pytorchvideo.transforms import ApplyTransformToKey, ShortSideScale, UniformTemporalSubsample, UniformCropVideo, \
     Normalize
-from torch.nn import MSELoss, L1Loss
+from torch.nn import MSELoss, L1Loss, CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader, SequentialSampler
 
 import wandb
 from data_prep.nvidia import NvidiaDataset, NvidiaDatasetRNN
+from datasets.dataset_name import DatasetName
 from datasets.ucf11 import Ucf11
 from models.model_type import ModelType
 from models.perciever import Perceiver
-from models.perciever_rnn import MLPPredictor, PerceiverRNN
+from models.perciever_rnn import MLPPredictor, PerceiverRNN, UcfClassPredictor
 from models.pilotnet import PilotNet
 from train.trainer import PerceiverTrainer, PilotNetTrainer
 
@@ -50,7 +52,7 @@ def parse_arguments():
     argparser.add_argument(
         '--loss',
         required=False,
-        choices=['mse', 'mae'],
+        choices=['mse', 'mae', 'ce'],
         default='mse',
         help='Loss function used for training.'
     )
@@ -199,6 +201,10 @@ class TrainingConfig:
         self.model_name = args.model_name
         self.loss = args.loss
         self.dataset_folder = args.dataset_folder
+        if 'ucf11' in args.dataset_folder.lower():
+            self.dataset_name = DatasetName.UCF_11
+        else:
+            self.dataset_name = DatasetName.RALLY_ESTONIA
         self.seed = args.seed
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
@@ -226,6 +232,7 @@ class TrainingConfig:
             'model_name': self.model_name,
             'loss': self.loss,
             'dataset_folder': self.dataset_folder,
+            'dataset_name': self.dataset_name,
             'seed': self.seed,
             'batch_size': self.batch_size,
             'num_workers': self.num_workers,
@@ -267,44 +274,77 @@ class TuneHyperparametersConfig(TrainingConfig):
 
 
 def train(train_config):
+    train_loader, valid_loader = load_data(train_config)
 
     if train_config.model_type == ModelType.PILOTNET:
         model = PilotNet()
         trainer = PilotNetTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
     elif train_config.model_type == ModelType.PERCEIVER:
-        pmodel = Perceiver(
-            input_channels = train_config.perceiver_in_channels,          # number of channels for each token of the input
-            input_axis = 2,              # number of axis for input data (2 for images, 3 for video)
-            num_freq_bands = 6,          # number of freq bands, with original value (2 * K + 1)
-            max_freq = 10.,              # maximum frequency, hyperparameter depending on how fine the data is
-            depth = 1,                   # depth of net. The shape of the final attention mechanism will be:
-                                         #   depth * (cross attention -> self_per_cross_attn * self attention)
-            num_latents = 256,           # number of latents, or induced set points, or centroids. different papers giving it different names
-            latent_dim = train_config.perceiver_latent_dim,            # latent dimension
-            cross_heads = 1,             # number of heads for cross attention. paper said 1
-            latent_heads = 4,            # number of heads for latent self attention, 8
-            cross_dim_head = 64,         # number of dimensions per cross attention head
-            latent_dim_head = 64,        # number of dimensions per latent self attention head
-            num_classes = 1,             # output number of classes
-            attn_dropout = train_config.perceiver_dropout,
-            ff_dropout = train_config.perceiver_dropout,
-            weight_tie_layers = False,   # whether to weight tie layers (optional, as indicated in the diagram)
-            fourier_encode_data = True,  # whether to auto-fourier encode the data, using the input_axis given. defaults to True, but can be turned off if you are fourier encoding the data yourself
-            self_per_cross_attn = 2      # number of self attention blocks per cross attention
-        )
-        steering_classifier = MLPPredictor(train_config.perceiver_latent_dim, 64)
+        is_many_to_one = False
+        if train_config.dataset_name == DatasetName.UCF_11:
+            classifier_head = UcfClassPredictor(train_config.perceiver_latent_dim, 64)
+            is_many_to_one = True
+            def prepare_dataloader_data_fn_ucf(loader_data):
+                data = loader_data
+                inputs = rearrange(data['video'], 'b c t h w -> t b h w c')
+                target_values = data['label']
+                return inputs, target_values
 
-        model = PerceiverRNN(pmodel, steering_classifier, preprocess=train_config.perceiver_img_pre_type)
-        trainer = PerceiverTrainer(train_config.model_name, wandb_project=train_config.wandb_project)
+            prepare_dataloader_data_fn = prepare_dataloader_data_fn_ucf
+
+        elif train_config.dataset_name == DatasetName.RALLY_ESTONIA:
+            classifier_head = MLPPredictor(train_config.perceiver_latent_dim, 64)
+
+            def prepare_dataloader_data_fn_rally_estonia(loader_data):
+                data, target_values, _ = loader_data
+                inputs = rearrange(data['image'], 'b t c h w -> t b h w c')  # (T, B, H, W, C)
+                target_values = rearrange(target_values, 'b t -> t b')  # (T, B)
+                return inputs, target_values
+
+            prepare_dataloader_data_fn = prepare_dataloader_data_fn_rally_estonia
+
+        else:
+            logging.error("Unsupported dataset.")
+            sys.exit()
+
+        pmodel = Perceiver(
+            input_channels=train_config.perceiver_in_channels,  # number of channels for each token of the input
+            input_axis=2,  # number of axis for input data (2 for images, 3 for video)
+            num_freq_bands=6,  # number of freq bands, with original value (2 * K + 1)
+            max_freq=10.,  # maximum frequency, hyperparameter depending on how fine the data is
+            depth=1,  # depth of net. The shape of the final attention mechanism will be:
+            #   depth * (cross attention -> self_per_cross_attn * self attention)
+            num_latents=256,
+            # number of latents, or induced set points, or centroids. different papers giving it different names
+            latent_dim=train_config.perceiver_latent_dim,  # latent dimension
+            cross_heads=1,  # number of heads for cross attention. paper said 1
+            latent_heads=4,  # number of heads for latent self attention, 8
+            cross_dim_head=64,  # number of dimensions per cross attention head
+            latent_dim_head=64,  # number of dimensions per latent self attention head
+            num_classes=1,  # output number of classes
+            attn_dropout=train_config.perceiver_dropout,
+            ff_dropout=train_config.perceiver_dropout,
+            weight_tie_layers=False,  # whether to weight tie layers (optional, as indicated in the diagram)
+            fourier_encode_data=True,
+            # whether to auto-fourier encode the data, using the input_axis given. defaults to True, but can be turned off if you are fourier encoding the data yourself
+            self_per_cross_attn=2  # number of self attention blocks per cross attention
+        )
+
+        model = PerceiverRNN(pmodel, classifier_head, preprocess=train_config.perceiver_img_pre_type)
+
+        trainer = PerceiverTrainer(
+            prepare_dataloader_data_fn=prepare_dataloader_data_fn,
+            is_many_to_one=is_many_to_one,
+            model_name=train_config.model_name,
+            wandb_project=train_config.wandb_project
+        )
     else:
         logging.error("Unknown model type: %s", train_config.model_type)
         sys.exit()
 
     criterion = get_loss_function(train_config)
     optimizer = AdamW(model.parameters(), lr=train_config.learning_rate, betas=(0.9, 0.999),
-                                  eps=1e-08, weight_decay=train_config.weight_decay, amsgrad=False)
-
-    train_loader, valid_loader = load_data(train_config)
+                      eps=1e-08, weight_decay=train_config.weight_decay, amsgrad=False)
 
     trainer.train(model, train_config.model_type, train_loader, valid_loader, optimizer, criterion,
                   train_config.max_epochs, train_config.patience, train_config.learning_rate_patience, train_config.fps)
@@ -315,6 +355,8 @@ def get_loss_function(train_config):
         return MSELoss()
     elif train_config.loss == 'mae':
         return L1Loss()
+    elif train_config.loss == 'ce':
+        return CrossEntropyLoss()
     else:
         logging.error("Unknown loss function type: %s", train_config.loss)
         sys.exit()
@@ -323,7 +365,7 @@ def get_loss_function(train_config):
 def load_data(train_config):
     logging.info("Reading from: %s", train_config.dataset_folder)
 
-    if 'ucf11' in train_config.dataset_folder.lower():
+    if train_config.dataset_name == DatasetName.UCF_11:
         logging.info("Dataset type: UCF11.")
         train_dataset, valid_dataset = Ucf11(
             clip_sampler=make_clip_sampler('uniform', train_config.clip_duration),
@@ -344,7 +386,7 @@ def load_data(train_config):
         )
 
         collate_fn = None
-    else:
+    elif train_config.dataset_name == DatasetName.RALLY_ESTONIA:
         logging.info("Dataset type: RallyEstonia.")
 
         dataset_path = Path(train_config.dataset_folder)
@@ -370,6 +412,9 @@ def load_data(train_config):
             sys.exit()
 
         collate_fn = train_dataset.collate_fn
+    else:
+        logging.error("Unknown dataset name: %s", train_config.dataset_name)
+        sys.exit()
 
     train_loader = DataLoader(train_dataset, batch_size=train_config.batch_size, shuffle=False,
                               num_workers=train_config.num_workers, pin_memory=True,
@@ -441,4 +486,3 @@ if __name__ == "__main__":
     elif args.mode == 'tune_hyperparameters':
         config = TuneHyperparametersConfig(args)
         tune_hyperparameters(config)
-
