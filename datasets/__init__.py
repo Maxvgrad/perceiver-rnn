@@ -9,6 +9,7 @@ from pytorchvideo.data import make_clip_sampler
 from pytorchvideo.transforms import (ApplyTransformToKey, ShortSideScale, UniformTemporalSubsample, UniformCropVideo,
                                      Normalize)
 from torch.utils.data import SequentialSampler
+from torch.utils.data import Subset
 
 from .coco import build as build_coco
 from .nvidia import NvidiaDataset, NvidiaDatasetRNN
@@ -17,7 +18,7 @@ from .ucf11 import Ucf11
 
 def build_dataset(args, image_set):
     if args.dataset == 'coco17':
-        return build_coco(args, image_set)
+        return dataset_proportion(args=args, dataset=build_coco(args, image_set))
     elif args.dataset == 'ucf11':
         return Ucf11(
             clip_sampler=make_clip_sampler('random', args.clip_duration),
@@ -62,3 +63,16 @@ def build_dataset(args, image_set):
 
         return train_dataset, valid_dataset
     raise ValueError(f'dataset {args.dataset_file} not supported')
+
+
+def dataset_proportion(args, dataset):
+    if args.dataset_proportion < 1.0:
+        dataset_size = len(dataset)
+        subset_size = int(args.dataset_proportion * dataset_size)
+        indices = list(range(dataset_size))
+        random.seed(args.seed)
+        random.shuffle(indices)
+        subset_indices = indices[:subset_size]
+        dataset = Subset(dataset, subset_indices)
+
+    return dataset
