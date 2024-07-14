@@ -38,6 +38,7 @@ git submodule update --recursive
     conda activate vista
     ```
     ```
+    mkdir vista_slurm
     sbatch evaluate_slurm.sh --model ./models/<MODEL_NAME> --traces forward_trace backward_trace --traces-root ./traces/ --save-video
     ```
 ### Setting Up Training Environment
@@ -84,3 +85,8 @@ Next time if you want to run any tests in the notebook, you should only check th
     ```
     
     - More information about `wandb`  [here](https://docs.wandb.ai/guide)
+  
+## Converting original dataset for training
+- From project directory, run: `sbatch convert_to_tensor_dataset.sh.dev`
+- This will take a couple of hours. A folder will be created in project directory called `tensor_dataset` and will be filled with subfloders. 
+- Check that the sbatch is running, as it asks for 64G memory.

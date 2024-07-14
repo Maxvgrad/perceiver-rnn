@@ -3,7 +3,7 @@
 #SBATCH --time=01:00:00 # set an appropriate amount of time for the job to run here in HH:MM:SS format
 #SBATCH --partition=gpu # set the partition to gpu
 #SBATCH --gres=gpu:tesla:1 # assign a single tesla gpu
-#SBATCH --output=~/rally-challenge-24/slurm/slurm_%x.%j.out # STDOUT
+#SBATCH --output=slurm/slurm_%x.%j.out # STDOUT
 
 # Here you need to run train.py with python from the virtual environment where you have all the dependencies install
 # You also have to pass the command line args (such as dataset name) to the script here, as well
