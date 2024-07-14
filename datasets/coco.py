@@ -34,8 +34,7 @@ def make_coco_transforms(image_set):
     if image_set == 'train':
         return v2.Compose([
             v2.ToImage(),
-            v2.CenterCrop(224),
-            v2.Resize(224),
+            v2.CenterCrop(512),
             v2.SanitizeBoundingBoxes(),
             v2.ToDtype(torch.float32, scale=True),
             normalize,
@@ -45,9 +44,7 @@ def make_coco_transforms(image_set):
       return v2.Compose(
         [
             v2.ToImage(),
-            v2.ToImage(),
-            v2.CenterCrop(224),
-            v2.Resize(224),
+            v2.CenterCrop(512),
             v2.SanitizeBoundingBoxes(),
             v2.ToDtype(torch.float32, scale=True),
             normalize
