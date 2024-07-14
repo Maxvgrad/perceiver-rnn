@@ -76,7 +76,6 @@ class ObjectDetectionHead(nn.Module):
         return out
 
 
-
 class UcfClassPredictor(nn.Module):
     def __init__(self, latent_dim, num_classes):
         super().__init__()
@@ -103,8 +102,8 @@ class PerceiverRnn(nn.Module):
         # latents (B, num_latents, latent_dim)
         preprocessed = self.image_preprocess(batch)
         latents = self.perceiver.forward(preprocessed, latents=latents, return_embeddings=True)
-        steering = self.classifier_head.forward(latents)
-        return steering, latents
+        predictions = self.classifier_head.forward(latents)
+        return predictions, latents
 
 
 def build_perceiver_rnn(args):

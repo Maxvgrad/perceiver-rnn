@@ -236,7 +236,7 @@ class Trainer:
         sample, targets = loader_data
         sample = sample.to(self.device)
         targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
-        predictions = model(sample)
+        predictions, _ = model(sample)
         loss = criterion(predictions, targets)
         return predictions, loss
 
