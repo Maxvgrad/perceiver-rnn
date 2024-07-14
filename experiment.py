@@ -142,6 +142,13 @@ def parse_arguments():
     )
 
     argparser.add_argument(
+        '--clip-duration',
+        type=float,
+        default=2.0,
+        help="Duration of sampled clip for each video."
+    )
+
+    argparser.add_argument(
         '--perceiver-seq-length',
         type=int,
         default=8,
@@ -201,6 +208,7 @@ class TrainingConfig:
         self.augment = bool(args.augment)
         self.dataset_proportion = args.dataset_proportion
         self.fps = 30
+        self.clip_duration = args.clip_duration
 
         self.perceiver_seq_length = args.perceiver_seq_length
         self.perceiver_stride = args.perceiver_stride
@@ -227,6 +235,7 @@ class TrainingConfig:
             'augment': self.augment,
             'dataset_proportion': self.dataset_proportion,
             'fps': self.fps,
+            'clip_duration': self.clip_duration,
             'perceiver_seq_length': self.perceiver_seq_length,
             'perceiver_stride': self.perceiver_stride,
             'perceiver_img_pre_type': self.perceiver_img_pre_type,
@@ -313,9 +322,8 @@ def load_data(train_config):
 
     if 'ucf11' in train_config.dataset_folder.lower():
         logging.info("Dataset type: UCF11.")
-        clip_duration = 100 #(sampling_rate * num_frames) / frames_per_second
         train_dataset, valid_dataset = Ucf11(
-            clip_sampler=make_clip_sampler('random', clip_duration),
+            clip_sampler=make_clip_sampler('random', train_config.clip_duration),
             video_sampler=SequentialSampler,
             data_path=train_config.dataset_folder
         )
