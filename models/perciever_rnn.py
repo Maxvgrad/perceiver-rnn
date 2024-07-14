@@ -21,6 +21,20 @@ class MLPPredictor(nn.Module):
         return self.linear_stack(x)
 
 
+class UcfClassPredictor(nn.Module):
+    def __init__(self, latent_dim, num_classes):
+        super().__init__()
+        self.linear_stack = nn.Sequential(
+            Reduce('b n d -> b d', 'mean'),
+            nn.LayerNorm(latent_dim),
+            nn.Linear(latent_dim, num_classes),
+            nn.Softmax(dim=1),
+        )
+
+    def forward(self, x):
+        return self.linear_stack(x)
+
+
 class PerceiverRNN(nn.Module):
     def __init__(self, perceiver, classifier_head, preprocess='None'):
         super().__init__()
