@@ -154,6 +154,7 @@ def parse_arguments():
     argparser.add_argument(
         '--perceiver-img-pre-type',
         type=str,
+        choices=['cnn', 'resnet18', 'dino'],
         default='cnn',
         help="Perceiver image preprocess model"
     )
